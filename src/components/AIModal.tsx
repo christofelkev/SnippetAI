@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Loader2, Sparkles } from 'lucide-react';
 import { Snippet, tauriApi } from '../lib/tauri';
 import { groupSnippets, AIGroupingResult } from '../lib/ai';
