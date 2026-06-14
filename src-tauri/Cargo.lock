@@ -3967,6 +3967,7 @@ dependencies = [
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-http",
  "tauri-plugin-opener",
+ "uuid",
 ]
 
 [[package]]
