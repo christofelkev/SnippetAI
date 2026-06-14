@@ -58,13 +58,6 @@ Once the build is complete, your installer files will be located at:
 
 ## AI Configuration
 
-The AI provider handles the intelligent grouping of your snippets. You can configure your AI provider directly inside the app through the **Settings** menu.
+The AI provider handles the intelligent grouping of your snippets. You can configure your AI provider (DeepSeek, Anthropic, atau OpenAI) beserta API Key-nya secara langsung di dalam aplikasi melalui menu **Settings** (ikon gerigi di pojok kiri bawah).
 
-Alternatively, you can provide fallback environment variables by creating a `.env` file in the root of the project:
-```env
-VITE_AI_PROVIDER=deepseek        # options: deepseek | anthropic | openai
-VITE_AI_API_KEY=sk-...           # your api key
-VITE_AI_MODEL=deepseek-chat      # (optional) model override
-```
-
-> **Note:** Settings configured via the app's UI take priority over `.env` variables and are stored securely in your local SQLite database.
+Semua pengaturan API Key disimpan secara aman di database lokal SQLite di komputermu, tidak dikirim ke pihak lain selain provider AI yang kamu pilih.

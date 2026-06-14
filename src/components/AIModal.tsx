@@ -26,14 +26,9 @@ export default function AIModal({ onClose, snippets, onApplyGroups }: AIModalPro
       const provider = await tauriApi.getSetting('ai_provider') || 'deepseek';
       let apiKey = await tauriApi.getSetting('ai_api_key');
       const model = await tauriApi.getSetting('ai_model');
-      
-      // Fallback to env if setting is empty
-      if (!apiKey && import.meta.env.VITE_AI_API_KEY) {
-        apiKey = import.meta.env.VITE_AI_API_KEY;
-      }
 
       if (!apiKey) {
-        throw new Error('AI API Key is not set. Please configure it in settings or .env');
+        throw new Error('AI API Key is not set. Please configure it in Settings first.');
       }
 
       const grouping = await groupSnippets(provider, apiKey, model, snippets);
