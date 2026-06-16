@@ -62,7 +62,7 @@ function App() {
         onSelectGroup={snippetsState.setSelectedGroup}
       />
       
-      <div className="flex flex-col w-1/3 border-r border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
+      <div className="flex flex-col w-1/3 border-r border-zinc-800 bg-zinc-900/40">
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -109,7 +109,7 @@ function App() {
         </div>
       </div>
       
-      <div className="flex-1 bg-zinc-950/30 backdrop-blur-sm flex flex-col">
+      <div className="flex-1 bg-zinc-950/20 flex flex-col">
         {selectedSnippet ? (
           <DetailView 
             snippet={selectedSnippet}

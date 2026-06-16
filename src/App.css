@@ -31,9 +31,9 @@
     --background: #000000;
     --foreground: #ffffff;
     --font-main: 'Teko', sans-serif;
-    --bg-pattern: radial-gradient(rgba(230, 0, 18, 0.15) 2px, transparent 2px), radial-gradient(rgba(230, 0, 18, 0.15) 2px, transparent 2px);
-    --bg-size: 24px 24px;
-    --bg-position: 0 0, 12px 12px;
+    --bg-pattern: url('/bg-persona.png');
+    --bg-size: cover;
+    --bg-position: center;
   }
 
   /* Ocean Blue (Light Theme) */
@@ -80,9 +80,9 @@
     --background: #050505;
     --foreground: #fcee0a;
     --font-main: 'Orbitron', sans-serif;
-    --bg-pattern: linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
-    --bg-size: 40px 40px;
-    --bg-position: center center;
+    --bg-pattern: url('/bg-cyberpunk.png');
+    --bg-size: cover;
+    --bg-position: center;
   }
 
   body {
