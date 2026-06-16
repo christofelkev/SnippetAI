@@ -9,7 +9,7 @@ interface SidebarProps {
 
 export default function Sidebar({ groups, groupCounts, selectedGroup, onSelectGroup }: SidebarProps) {
   return (
-    <div className="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col">
+    <div className="w-64 bg-zinc-950/70 backdrop-blur-md border-r border-zinc-800 flex flex-col">
       <div className="p-4 border-b border-zinc-800">
         <h2 className="text-sm font-semibold tracking-wider text-zinc-500 uppercase">Groups</h2>
       </div>

@@ -54,7 +54,7 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-100">
+    <div className="flex h-screen w-screen overflow-hidden bg-transparent text-zinc-100">
       <Sidebar 
         groups={snippetsState.groups}
         groupCounts={snippetsState.groupCounts}
@@ -62,7 +62,7 @@ function App() {
         onSelectGroup={snippetsState.setSelectedGroup}
       />
       
-      <div className="flex flex-col w-1/3 border-r border-zinc-800 bg-zinc-900/50">
+      <div className="flex flex-col w-1/3 border-r border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -109,7 +109,7 @@ function App() {
         </div>
       </div>
       
-      <div className="flex-1 bg-zinc-950 flex flex-col">
+      <div className="flex-1 bg-zinc-950/30 backdrop-blur-sm flex flex-col">
         {selectedSnippet ? (
           <DetailView 
             snippet={selectedSnippet}

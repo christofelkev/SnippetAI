@@ -4,6 +4,9 @@
   :root {
     --background: #09090b;
     --foreground: #fafafa;
+    --bg-pattern: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    --bg-size: 32px 32px;
+    --bg-position: 0 0;
   }
 
   /* Default theme is implicitly zinc + indigo */
@@ -28,6 +31,9 @@
     --background: #000000;
     --foreground: #ffffff;
     --font-main: 'Teko', sans-serif;
+    --bg-pattern: radial-gradient(rgba(230, 0, 18, 0.15) 2px, transparent 2px), radial-gradient(rgba(230, 0, 18, 0.15) 2px, transparent 2px);
+    --bg-size: 24px 24px;
+    --bg-position: 0 0, 12px 12px;
   }
 
   /* Ocean Blue (Light Theme) */
@@ -49,6 +55,9 @@
     
     --background: #f8fafc;
     --foreground: #0f172a;
+    --bg-pattern: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    --bg-size: 32px 32px;
+    --bg-position: 0 0;
   }
 
   /* Cyberpunk 2077 */
@@ -71,10 +80,16 @@
     --background: #050505;
     --foreground: #fcee0a;
     --font-main: 'Orbitron', sans-serif;
+    --bg-pattern: linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+    --bg-size: 40px 40px;
+    --bg-position: center center;
   }
 
   body {
     background-color: var(--background);
+    background-image: var(--bg-pattern, none);
+    background-size: var(--bg-size, auto);
+    background-position: var(--bg-position, 0 0);
     color: var(--foreground);
     font-family: var(--font-main, 'Inter', system-ui, -apple-system, sans-serif);
     -webkit-font-smoothing: antialiased;
