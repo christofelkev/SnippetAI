@@ -10,17 +10,20 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [provider, setProvider] = useState('deepseek');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
+  const [appTheme, setAppTheme] = useState('theme-default');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       tauriApi.getSetting('ai_provider'),
       tauriApi.getSetting('ai_api_key'),
-      tauriApi.getSetting('ai_model')
-    ]).then(([p, k, m]) => {
+      tauriApi.getSetting('ai_model'),
+      tauriApi.getSetting('app_theme')
+    ]).then(([p, k, m, t]) => {
       setProvider(p || 'deepseek');
       setApiKey(k || '');
       setModel(m || '');
+      setAppTheme(t || 'theme-default');
       setLoading(false);
     });
   }, []);
@@ -29,6 +32,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     await tauriApi.setSetting('ai_provider', provider);
     await tauriApi.setSetting('ai_api_key', apiKey);
     await tauriApi.setSetting('ai_model', model);
+    await tauriApi.setSetting('app_theme', appTheme);
     onClose();
   };
 
@@ -45,6 +49,22 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         </div>
         
         <div className="p-6 space-y-5">
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">App Theme</label>
+            <select
+              value={appTheme}
+              onChange={e => setAppTheme(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+            >
+              <option value="theme-default">Default Dark</option>
+              <option value="theme-hacker-red">Hacker Red</option>
+              <option value="theme-ocean-blue">Ocean Blue (Light)</option>
+              <option value="theme-cyberpunk">Cyberpunk</option>
+            </select>
+          </div>
+          
+          <hr className="border-zinc-800" />
+          
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1">AI Provider</label>
             <select

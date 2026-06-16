@@ -18,6 +18,15 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
+  const loadTheme = async () => {
+    const theme = await tauriApi.getSetting('app_theme');
+    document.body.className = theme || 'theme-default';
+  };
+
+  useEffect(() => {
+    loadTheme();
+  }, [isSettingsOpen]); // Reload theme when settings might have changed
+
   // Handle global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
