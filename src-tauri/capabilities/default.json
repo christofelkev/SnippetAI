@@ -9,6 +9,10 @@
     "core:default",
     "opener:default",
     "clipboard-manager:default",
-    "http:default"
+    "http:default",
+    {
+      "identifier": "http:default",
+      "allow": [{"url": "https://**"}, {"url": "http://**"}]
+    }
   ]
 }
