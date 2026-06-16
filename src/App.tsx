@@ -7,7 +7,7 @@ import AddPanel from './components/AddPanel';
 import AIModal from './components/AIModal';
 import Toast from './components/Toast';
 import SettingsModal from './components/SettingsModal';
-import { Snippet } from './lib/tauri';
+import { Snippet, tauriApi } from './lib/tauri';
 import { Search, Plus, Settings } from 'lucide-react';
 
 function App() {
