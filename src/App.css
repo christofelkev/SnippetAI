@@ -8,25 +8,26 @@
 
   /* Default theme is implicitly zinc + indigo */
 
-  /* Hacker Red */
+  /* Hacker Red (Persona 5 Royal) */
   .theme-hacker-red {
     --color-zinc-950: #000000;
     --color-zinc-900: #0a0a0a;
     --color-zinc-800: #1a1a1a;
-    --color-zinc-700: #262626;
-    --color-zinc-500: #525252;
-    --color-zinc-400: #a3a3a3;
-    --color-zinc-300: #d4d4d4;
-    --color-zinc-200: #e5e5e5;
-    --color-zinc-100: #f5f5f5;
+    --color-zinc-700: #e60012; /* P5 Red Borders */
+    --color-zinc-500: #8c8c8c;
+    --color-zinc-400: #bfbfbf;
+    --color-zinc-300: #dfdfdf;
+    --color-zinc-200: #f2f2f2;
+    --color-zinc-100: #ffffff;
 
-    --color-indigo-600: #dc2626;
-    --color-indigo-500: #ef4444;
-    --color-indigo-400: #f87171;
-    --color-indigo-200: #fecaca;
+    --color-indigo-600: #e60012; /* Persona 5 Crimson Red */
+    --color-indigo-500: #ff1a2b;
+    --color-indigo-400: #ff4d59;
+    --color-indigo-200: #ffb3b8;
     
     --background: #000000;
-    --foreground: #f5f5f5;
+    --foreground: #ffffff;
+    --font-main: 'Teko', sans-serif;
   }
 
   /* Ocean Blue (Light Theme) */
@@ -50,31 +51,32 @@
     --foreground: #0f172a;
   }
 
-  /* Cyberpunk */
+  /* Cyberpunk 2077 */
   .theme-cyberpunk {
-    --color-zinc-950: #2e0219;
-    --color-zinc-900: #4a044e;
-    --color-zinc-800: #701a75;
-    --color-zinc-700: #86198f;
-    --color-zinc-500: #c026d3;
-    --color-zinc-400: #d946ef;
-    --color-zinc-300: #e879f9;
-    --color-zinc-200: #f0abfc;
-    --color-zinc-100: #fae8ff;
+    --color-zinc-950: #050505;
+    --color-zinc-900: #121212;
+    --color-zinc-800: #222222;
+    --color-zinc-700: #ff003c; /* Cyberpunk Red accents */
+    --color-zinc-500: #00f0ff; /* Cyberpunk Cyan */
+    --color-zinc-400: #8f8f8f;
+    --color-zinc-300: #cccccc;
+    --color-zinc-200: #e6e6e6;
+    --color-zinc-100: #00f0ff; /* Highlight text cyan */
 
-    --color-indigo-600: #facc15;
-    --color-indigo-500: #fde047;
-    --color-indigo-400: #fef08a;
-    --color-indigo-200: #fef9c3;
+    --color-indigo-600: #fcee0a; /* Cyberpunk Yellow */
+    --color-indigo-500: #e0d309;
+    --color-indigo-400: #fff53d;
+    --color-indigo-200: #fdf399;
     
-    --background: #2e0219;
-    --foreground: #fae8ff;
+    --background: #050505;
+    --foreground: #fcee0a;
+    --font-main: 'Orbitron', sans-serif;
   }
 
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-main, 'Inter', system-ui, -apple-system, sans-serif);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
