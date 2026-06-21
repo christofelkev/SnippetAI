@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Snippet } from '../lib/tauri';
+import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { Copy, Trash2, Check } from 'lucide-react';
 
@@ -35,6 +37,45 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
     setIsCopied(true);
     onCopy();
     setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        try {
+          // Tauri requires a number array, not Uint8Array directly in some cases, but we can pass it as a regular array
+          const savedPath = await invoke<string>('save_image_to_disk', { bytes: Array.from(uint8Array) });
+          
+          const textarea = e.currentTarget;
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          
+          let assetUrl = savedPath.replace(/\\/g, '/');
+          try {
+            assetUrl = convertFileSrc(savedPath);
+          } catch (e) {
+            console.warn("Could not convert file src", e);
+          }
+          
+          const markdownImage = `\n![Pasted Image](${assetUrl})\n`;
+          const newContent = content.substring(0, start) + markdownImage + content.substring(end);
+          setContent(newContent);
+          
+          // Trigger save
+          onUpdate(title, newContent, group);
+        } catch (err) {
+          console.error("Failed to save pasted image", err);
+        }
+      }
+    }
   };
 
   // Find related snippets offline based on simple token overlap
@@ -100,6 +141,7 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
           value={content}
           onChange={e => setContent(e.target.value)}
           onBlur={handleSave}
+          onPaste={handlePaste}
           className="w-full h-full min-h-[300px] bg-zinc-900 border border-zinc-800 rounded-lg p-4 font-mono text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50 resize-none transition-colors"
           placeholder="Paste your snippet here..."
         />

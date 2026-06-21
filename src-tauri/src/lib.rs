@@ -228,6 +228,20 @@ fn set_setting(key: String, value: String, state: tauri::State<AppState>) -> Res
     Ok(())
 }
 
+#[tauri::command]
+fn save_image_to_disk(bytes: Vec<u8>, app: tauri::AppHandle) -> Result<String, String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let images_dir = app_dir.join("images");
+    std::fs::create_dir_all(&images_dir).map_err(|e| e.to_string())?;
+    
+    let filename = format!("{}.png", generate_id());
+    let file_path = images_dir.join(&filename);
+    
+    std::fs::write(&file_path, bytes).map_err(|e| e.to_string())?;
+    
+    Ok(file_path.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -250,7 +264,8 @@ pub fn run() {
             search_snippets,
             apply_groups,
             get_setting,
-            set_setting
+            set_setting,
+            save_image_to_disk
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
