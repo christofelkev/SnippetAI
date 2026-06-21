@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Snippet } from '../lib/tauri';
-import { handleImagePaste } from '../lib/imagePaste';
+import ContentEditor from './ContentEditor';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { Copy, Trash2, Check } from 'lucide-react';
 
@@ -105,13 +105,10 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
       </div>
       
       <div className="flex-1 p-6 overflow-y-auto">
-        <textarea
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          onBlur={handleSave}
-          onPaste={handlePaste}
-          className="w-full h-full min-h-[300px] bg-zinc-900 border border-zinc-800 rounded-lg p-4 font-mono text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50 resize-none transition-colors"
-          placeholder="Paste your snippet here..."
+        <ContentEditor
+          content={content}
+          onChange={setContent}
+          onSave={handleSave}
         />
       </div>
 
