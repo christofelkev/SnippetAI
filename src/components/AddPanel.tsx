@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { handleImagePaste } from '../lib/imagePaste';
 
 interface AddPanelProps {
   onClose: () => void;
@@ -40,8 +41,12 @@ export default function AddPanel({ onClose, onAdd, groups }: AddPanelProps) {
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
+              onPaste={async (e) => {
+                const newContent = await handleImagePaste(e, content);
+                if (newContent !== null) setContent(newContent);
+              }}
               className="w-full h-40 bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 font-mono text-sm text-zinc-300 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
-              placeholder="docker build -t my-app ."
+              placeholder="docker build -t my-app . (or paste an image!)"
             />
           </div>
           
