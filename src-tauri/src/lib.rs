@@ -242,6 +242,13 @@ fn save_image_to_disk(bytes: Vec<u8>, app: tauri::AppHandle) -> Result<String, S
     Ok(file_path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn read_image_from_disk(filename: String, app: tauri::AppHandle) -> Result<Vec<u8>, String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let file_path = app_dir.join("images").join(&filename);
+    std::fs::read(&file_path).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -265,7 +272,8 @@ pub fn run() {
             apply_groups,
             get_setting,
             set_setting,
-            save_image_to_disk
+            save_image_to_disk,
+            read_image_from_disk
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

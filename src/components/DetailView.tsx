@@ -18,6 +18,7 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
   const [content, setContent] = useState(snippet.content);
   const [group, setGroup] = useState(snippet.group_name);
   const [isCopied, setIsCopied] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     setTitle(snippet.title);
@@ -38,13 +39,6 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const newContent = await handleImagePaste(e, content);
-    if (newContent !== null) {
-      setContent(newContent);
-      onUpdate(title, newContent, group);
-    }
-  };
 
   // Find related snippets offline based on simple token overlap
   const relatedSnippets = allSnippets
@@ -91,11 +85,7 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
             {isCopied ? 'Copied' : 'Copy'}
           </button>
           <button
-            onClick={() => {
-              if (window.confirm('Delete this snippet?')) {
-                onDelete();
-              }
-            }}
+            onClick={() => setShowDeleteConfirm(true)}
             className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
             title="Delete Snippet"
           >
@@ -128,6 +118,31 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
                 </div>
               </button>
             ))}
+      {/* Custom Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-semibold text-zinc-100 mb-2">Delete Snippet</h3>
+            <p className="text-zinc-400 text-sm mb-6">
+              Are you sure you want to delete <span className="text-zinc-300 font-medium">"{title}"</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  onDelete();
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-md transition-colors shadow-[0_0_15px_rgba(220,38,38,0.3)]"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -8,8 +8,8 @@ const IMAGE_REGEX = /!\[([^\]]*)\]\(([^)]+)\)/g;
 
 interface ContentBlock {
   type: 'text' | 'image';
-  value: string;     // text content or image URL
-  alt?: string;       // alt text for images
+  value: string;     // text content or image asset URL
+  alt?: string;
 }
 
 function parseContent(content: string): ContentBlock[] {
@@ -20,30 +20,20 @@ function parseContent(content: string): ContentBlock[] {
   let match;
 
   while ((match = regex.exec(content)) !== null) {
-    // Add text before the image
     if (match.index > lastIndex) {
       const text = content.slice(lastIndex, match.index);
       if (text.trim() || text.includes('\n')) {
         blocks.push({ type: 'text', value: text });
       }
     }
-
-    // Add image block
-    blocks.push({
-      type: 'image',
-      alt: match[1] || 'Image',
-      value: match[2],
-    });
-
+    blocks.push({ type: 'image', alt: match[1] || 'Image', value: match[2] });
     lastIndex = match.index + match[0].length;
   }
 
-  // Remaining text after last image
   if (lastIndex < content.length) {
     blocks.push({ type: 'text', value: content.slice(lastIndex) });
   }
 
-  // If no blocks were found, treat entire content as text
   if (blocks.length === 0) {
     blocks.push({ type: 'text', value: content });
   }
@@ -53,9 +43,7 @@ function parseContent(content: string): ContentBlock[] {
 
 function blocksToString(blocks: ContentBlock[]): string {
   return blocks
-    .map(b =>
-      b.type === 'image' ? `![${b.alt || 'Image'}](${b.value})` : b.value
-    )
+    .map(b => b.type === 'image' ? `![${b.alt || 'Image'}](${b.value})` : b.value)
     .join('');
 }
 
@@ -71,7 +59,6 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
   const [lightboxAlt, setLightboxAlt] = useState('');
   const textareaRefs = useRef<Map<number, HTMLTextAreaElement>>(new Map());
 
-  // Sync blocks when external content changes
   useEffect(() => {
     setBlocks(parseContent(content));
   }, [content]);
@@ -85,9 +72,7 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
 
   const removeImageBlock = (index: number) => {
     const newBlocks = blocks.filter((_, i) => i !== index);
-    if (newBlocks.length === 0) {
-      newBlocks.push({ type: 'text', value: '' });
-    }
+    if (newBlocks.length === 0) newBlocks.push({ type: 'text', value: '' });
     setBlocks(newBlocks);
     onChange(blocksToString(newBlocks));
   };
@@ -99,7 +84,6 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
     const currentText = blocks[blockIndex]?.value || '';
     const newContent = await handleImagePaste(e, currentText);
     if (newContent !== null) {
-      // Re-parse the modified text block to extract the new image
       const parsedNew = parseContent(newContent);
       const newBlocks = [
         ...blocks.slice(0, blockIndex),
@@ -111,7 +95,6 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
     }
   };
 
-  // Auto-resize textareas
   const autoResize = (el: HTMLTextAreaElement | null) => {
     if (!el) return;
     el.style.height = 'auto';
@@ -143,7 +126,7 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
         ) : (
           <div
             key={`img-${i}`}
-            className="relative group my-2 rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900/50 inline-block"
+            className="relative group my-2 rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900/50 inline-block max-w-full"
           >
             <img
               src={block.value}
@@ -154,16 +137,13 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
               }}
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
-                const parent = (e.target as HTMLImageElement).parentElement;
-                if (parent) {
-                  const fallback = parent.querySelector('.img-fallback');
-                  if (fallback) (fallback as HTMLElement).style.display = 'flex';
-                }
+                const next = (e.target as HTMLImageElement).nextElementSibling;
+                if (next) (next as HTMLElement).style.display = 'flex';
               }}
-              className="max-w-full max-h-[400px] object-contain cursor-pointer hover:opacity-90 transition-opacity rounded-lg"
+              className="max-w-full max-h-[400px] object-contain cursor-zoom-in hover:opacity-90 transition-opacity rounded-lg block"
             />
-            {/* Fallback when image fails to load */}
-            <div className="img-fallback hidden items-center justify-center gap-2 p-6 text-zinc-500">
+            {/* Fallback */}
+            <div style={{ display: 'none' }} className="items-center justify-center gap-2 p-6 text-zinc-500 min-w-[200px]">
               <ImageIcon className="w-8 h-8" />
               <span className="text-sm">Image not found</span>
             </div>
@@ -175,8 +155,8 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
             >
               <Trash2 className="w-4 h-4" />
             </button>
-            {/* Click hint */}
-            <div className="absolute bottom-2 left-2 text-xs text-zinc-400 bg-zinc-900/80 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Zoom hint */}
+            <div className="absolute bottom-2 left-2 text-xs text-zinc-400 bg-zinc-900/80 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               Click to zoom
             </div>
           </div>
