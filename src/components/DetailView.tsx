@@ -118,6 +118,10 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
                 </div>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
       {/* Custom Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
