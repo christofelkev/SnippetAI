@@ -3,6 +3,7 @@ import { Snippet } from '../lib/tauri';
 import ContentEditor from './ContentEditor';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { Copy, Trash2, Check } from 'lucide-react';
+import { stripImageMarkdown } from '../lib/content';
 
 interface DetailViewProps {
   snippet: Snippet;
@@ -33,7 +34,7 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
   };
 
   const handleCopy = async () => {
-    await writeText(content);
+    await writeText(stripImageMarkdown(content));
     setIsCopied(true);
     onCopy();
     setTimeout(() => setIsCopied(false), 2000);
