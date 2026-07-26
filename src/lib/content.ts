@@ -50,7 +50,10 @@ function removeImageMarkdown(content: string): string {
   return result;
 }
 
-/** Remove inline image markdown so only code lands on the clipboard. */
+/**
+ * Remove inline image markdown so only code lands on the clipboard.
+ * Unclosed image candidates (e.g. `![...](`) are left as literal text while well-formed images are removed.
+ */
 export function stripImageMarkdown(content: string): string {
   return removeImageMarkdown(content)
     .replace(/\n{3,}/g, '\n\n')

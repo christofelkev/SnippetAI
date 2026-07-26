@@ -67,4 +67,11 @@ describe('stripImageMarkdown', () => {
       '![a](http://foo/bar(baz'
     );
   });
+
+  it('strips a well-formed image that follows an unclosed image candidate', () => {
+    // `![b](` never closes, so it stays as literal text. The self-contained
+    // `![c](3)` after it is still a real image, so it is stripped — matching
+    // CommonMark, which also treats the two independently.
+    expect(stripImageMarkdown('X![b](unclosedY![c](3)Z')).toBe('X![b](unclosedYZ');
+  });
 });
