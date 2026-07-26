@@ -19,4 +19,26 @@ describe('stripImageMarkdown', () => {
   it('removes multiple images', () => {
     expect(stripImageMarkdown('![a](1)x![b](2)y')).toBe('xy');
   });
+
+  it('removes an image whose alt text has one level of nested brackets', () => {
+    expect(
+      stripImageMarkdown('x ![Pasted [Image]](http://foo/bar.png) y')
+    ).toBe('x  y');
+  });
+
+  it('removes an image whose URL has a parenthesis, without leaving a stray paren', () => {
+    expect(
+      stripImageMarkdown(
+        'before ![alt](https://en.wikipedia.org/wiki/Foo_(bar)) after'
+      )
+    ).toBe('before  after');
+  });
+
+  it('removes multiple images with nested brackets/parens independently', () => {
+    expect(
+      stripImageMarkdown(
+        '![a [x]](http://a/(1).png)mid![b](http://b/(2)/y.png)end'
+      )
+    ).toBe('midend');
+  });
 });

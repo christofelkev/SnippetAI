@@ -1,4 +1,5 @@
-const IMAGE_MARKDOWN = /!\[[^\]]*\]\([^)]+\)/g;
+const IMAGE_MARKDOWN =
+  /!\[(?:[^[\]]|\[[^[\]]*\])*\]\((?:[^()]|\([^()]*\))*\)/g;
 
 /** Remove inline image markdown so only code lands on the clipboard. */
 export function stripImageMarkdown(content: string): string {
