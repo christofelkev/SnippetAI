@@ -41,4 +41,30 @@ describe('stripImageMarkdown', () => {
       )
     ).toBe('midend');
   });
+
+  it('removes an image whose alt text has two levels of nested brackets', () => {
+    expect(
+      stripImageMarkdown('x ![a [b [c]] d](http://foo/bar.png) y')
+    ).toBe('x  y');
+  });
+
+  it('removes an image whose URL has two levels of nested parens', () => {
+    expect(
+      stripImageMarkdown('before ![alt](http://foo/(a(b)c)) after')
+    ).toBe('before  after');
+  });
+
+  it('removes an image with three levels of nested brackets and parens', () => {
+    expect(
+      stripImageMarkdown(
+        'A ![t1 [t2 [t3]]](http://host/(p1(p2(p3)))) B'
+      )
+    ).toBe('A  B');
+  });
+
+  it('leaves an unbalanced/malformed image untouched with no partial deletion', () => {
+    expect(stripImageMarkdown('![a](http://foo/bar(baz')).toBe(
+      '![a](http://foo/bar(baz'
+    );
+  });
 });
