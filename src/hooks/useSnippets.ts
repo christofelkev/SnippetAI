@@ -33,8 +33,8 @@ export function useSnippets() {
     fetchSnippets();
   };
 
-  const updateSnippet = async (id: string, title?: string, content?: string, groupName?: string) => {
-    await tauriApi.updateSnippet(id, title, content, groupName);
+  const updateSnippet = async (id: string, title?: string, content?: string, groupName?: string, language?: string) => {
+    await tauriApi.updateSnippet(id, title, content, groupName, language);
     fetchSnippets();
   };
 

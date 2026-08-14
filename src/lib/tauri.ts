@@ -7,6 +7,7 @@ export interface Snippet {
   group_name: string;
   created_at: number;
   updated_at: number;
+  language: string;
 }
 
 export const tauriApi = {
@@ -15,8 +16,8 @@ export const tauriApi = {
   addSnippet: (title: string, content: string, groupName?: string) => 
     invoke<Snippet>('add_snippet', { title, content, groupName }),
   
-  updateSnippet: (id: string, title?: string, content?: string, groupName?: string) => 
-    invoke<Snippet>('update_snippet', { id, title, content, groupName }),
+  updateSnippet: (id: string, title?: string, content?: string, groupName?: string, language?: string) =>
+    invoke<Snippet>('update_snippet', { id, title, content, groupName, language }),
   
   deleteSnippet: (id: string) => invoke<void>('delete_snippet', { id }),
   
