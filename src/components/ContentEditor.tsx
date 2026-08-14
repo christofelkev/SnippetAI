@@ -7,7 +7,7 @@ import hljs from 'highlight.js';
 // Regex to match markdown images: ![alt](url)
 const IMAGE_REGEX = /!\[([^\]]*)\]\(([^)]+)\)/g;
 
-interface ContentBlock {
+export interface ContentBlock {
   type: 'text' | 'image';
   value: string;     // text content or image asset URL
   alt?: string;
@@ -42,6 +42,33 @@ function parseContent(content: string): ContentBlock[] {
   return blocks;
 }
 
+/** Guarantee a text block at the start, end, and between adjacent images so
+ *  there is always somewhere to click and type. */
+export function withEditableGaps(blocks: ContentBlock[]): ContentBlock[] {
+  if (blocks.length === 0) {
+    return [{ type: 'text', value: '' }];
+  }
+
+  const result: ContentBlock[] = [];
+
+  if (blocks[0].type === 'image') {
+    result.push({ type: 'text', value: '' });
+  }
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    result.push(block);
+    if (block.type === 'image') {
+      const next = blocks[i + 1];
+      if (!next || next.type === 'image') {
+        result.push({ type: 'text', value: '' });
+      }
+    }
+  }
+
+  return result;
+}
+
 function blocksToString(blocks: ContentBlock[]): string {
   return blocks
     .map(b => b.type === 'image' ? `![${b.alt || 'Image'}](${b.value})` : b.value)
@@ -71,15 +98,24 @@ interface ContentEditorProps {
 }
 
 export default function ContentEditor({ content, language, onChange, onSave }: ContentEditorProps) {
-  const [blocks, setBlocks] = useState<ContentBlock[]>(() => parseContent(content));
+  const [blocks, setBlocks] = useState<ContentBlock[]>(() => withEditableGaps(parseContent(content)));
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const textareaRefs = useRef<Map<number, HTMLTextAreaElement>>(new Map());
 
   useEffect(() => {
-    setBlocks(parseContent(content));
+    setBlocks(withEditableGaps(parseContent(content)));
   }, [content]);
+
+  // Keep editingIndex valid whenever blocks are replaced: if it no longer
+  // points at a text block, drop back to "not editing" instead of leaving a
+  // stale index that points at nothing (or at an image).
+  useEffect(() => {
+    setEditingIndex(prev =>
+      prev !== null && blocks[prev]?.type === 'text' ? prev : null
+    );
+  }, [blocks]);
 
   const updateTextBlock = (index: number, value: string) => {
     const newBlocks = [...blocks];
