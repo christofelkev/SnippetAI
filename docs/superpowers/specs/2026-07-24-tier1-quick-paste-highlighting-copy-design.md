@@ -38,7 +38,8 @@ Approved decisions:
 - `lib.rs`:
   - Register `tauri_plugin_global_shortcut` plugin.
   - Build a **tray icon** in `setup` with a menu: `Open SnippetAI`, `Quick Paste`, `Quit`. Left-click toggles the main window; menu items show the respective window or exit.
-  - **Hide-to-tray:** intercept the main window `CloseRequested` event → `prevent_close()` + `window.hide()`. The app only exits via the tray `Quit` item.
+  - **Hide-to-tray:** intercept `CloseRequested` for **both** windows → `prevent_close()` + `window.hide()`. The app only exits via the tray `Quit` item (`app.exit(0)`, which bypasses this handler). This must cover `quickpaste` too: it is chromeless, but Windows still delivers `WM_CLOSE` on Alt+F4, and letting that through **destroys** the window — after which the hotkey and the tray's Quick Paste item silently do nothing for the rest of the session.
+  - **Single instance:** register `tauri-plugin-single-instance` **first** in the builder chain; its callback shows and focuses `main`. Required because hide-to-tray makes the app look closed (a fresh Windows 11 tray icon hides in the overflow flyout), so users relaunch it — and a second process means two tray icons, a hotkey conflict with itself, and two independent SQLite connections whose stale in-memory snapshots can silently overwrite each other's saves.
 - `tauri.conf.json`: declare a second window:
   ```json
   {
@@ -54,7 +55,12 @@ Approved decisions:
     "center": true
   }
   ```
-- `capabilities/default.json`: extend `windows` to `["main", "quickpaste"]`; add `global-shortcut:default` and window show/hide/focus permissions for the quickpaste window.
+- `capabilities/default.json`: extend `windows` to `["main", "quickpaste"]`; add window show/hide/focus permissions plus the global-shortcut permissions.
+
+  > **Do NOT use `global-shortcut:default`.** In `tauri-plugin-global-shortcut` that set is deliberately **empty** ("No features are enabled by default, as we believe the shortcuts can be inherently dangerous"), and Tauri v2's ACL is deny-by-default — so every `register`/`unregister`/`is_registered` IPC call is rejected at runtime and the hotkey never fires. Nothing catches this statically: `tsc`, `cargo check`, the tests, and `npm run build` all pass. Grant the four commands explicitly instead:
+  > `global-shortcut:allow-register`, `global-shortcut:allow-unregister`, `global-shortcut:allow-unregister-all`, `global-shortcut:allow-is-registered`.
+  >
+  > After changing capabilities, verify every identifier actually exists by grepping `src-tauri/gen/schemas/`. A well-formed but wrong identifier fails only at runtime.
 
 **Frontend:**
 - `main.tsx` picks the React root by window label:
@@ -77,10 +83,12 @@ Approved decisions:
 - The main window's webview stays alive while hidden to tray, so the JS-registered handler keeps working in the background.
 
 ### Settings changes
-- Add a **Global hotkey** field to `SettingsModal`. On change: unregister the old accelerator, register the new one, persist to settings key `global_hotkey`.
+- Add a **Global hotkey** field to `SettingsModal`, persisted to settings key `global_hotkey`.
+- On save, **rebind before persisting anything**, and skip the rebind entirely when the field is unchanged — so editing only the theme never touches a working hotkey. Persist all settings and close the modal only once the rebind succeeds; on failure persist nothing and keep the modal open with the error shown. (Writing the other settings first and then failing leaves a half-committed save the user gets no signal about.)
 
 ### Error handling
-- Shortcut registration can fail (accelerator already claimed by the OS/another app). Catch it, keep the previous binding, and toast: "Hotkey gagal didaftarkan — mungkin sudah dipakai aplikasi lain."
+- Shortcut registration can fail (accelerator already claimed by the OS/another app). Catch it, **keep the previous binding** (restore it if the new one fails; re-throw the original error rather than masking it with a restore failure), and show: "Hotkey gagal didaftarkan — mungkin sudah dipakai aplikasi lain." Use this exact wording in both `App.tsx` (startup toast) and `SettingsModal` (inline error).
+- The clipboard write in QuickPaste can also fail (another process holding the clipboard is common on Windows). Wrap it: hide the popup only on success. Hiding on failure makes the user believe the copy worked and paste stale clipboard contents — a silent wrong paste.
 
 ## Feature 2 — Syntax highlighting + per-snippet language
 
