@@ -13,6 +13,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [model, setModel] = useState('');
   const [appTheme, setAppTheme] = useState('theme-default');
   const [hotkey, setHotkey] = useState(DEFAULT_HOTKEY);
+  const [savedHotkey, setSavedHotkey] = useState(DEFAULT_HOTKEY);
+  const [hotkeyError, setHotkeyError] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
       setModel(m || '');
       setAppTheme(t || 'theme-default');
       setHotkey(hk || DEFAULT_HOTKEY);
+      setSavedHotkey(hk || DEFAULT_HOTKEY);
       setLoading(false);
     });
   }, []);
@@ -37,8 +40,16 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     await tauriApi.setSetting('ai_api_key', apiKey);
     await tauriApi.setSetting('ai_model', model);
     await tauriApi.setSetting('app_theme', appTheme);
+
+    try {
+      await rebindHotkey(hotkey, savedHotkey);
+    } catch {
+      setHotkeyError('Hotkey gagal didaftarkan — mungkin sudah dipakai aplikasi lain.');
+      return;
+    }
+
     await tauriApi.setSetting('global_hotkey', hotkey);
-    await rebindHotkey(hotkey).catch(() => {});
+    setSavedHotkey(hotkey);
     onClose();
   };
 
@@ -74,11 +85,17 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             <input
               type="text"
               value={hotkey}
-              onChange={e => setHotkey(e.target.value)}
+              onChange={e => {
+                setHotkey(e.target.value);
+                setHotkeyError('');
+              }}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors font-mono"
               placeholder="CmdOrCtrl+Shift+Space"
             />
             <p className="text-[10px] text-zinc-500 mt-1">e.g. CmdOrCtrl+Shift+Space, Alt+Space. Restart not required.</p>
+            {hotkeyError && (
+              <p className="text-[10px] text-red-400 mt-1">{hotkeyError}</p>
+            )}
           </div>
 
           <hr className="border-zinc-800" />

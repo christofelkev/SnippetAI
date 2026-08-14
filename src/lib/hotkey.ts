@@ -21,8 +21,21 @@ export async function registerHotkey(accelerator: string): Promise<void> {
   });
 }
 
-/** Clear any existing bindings and register the given accelerator. */
-export async function rebindHotkey(accelerator: string): Promise<void> {
+/**
+ * Clear any existing bindings and register the given accelerator.
+ * If registration fails, best-effort restore `previous` so the app never
+ * ends up with no working hotkey, then re-throw the original error.
+ */
+export async function rebindHotkey(accelerator: string, previous: string): Promise<void> {
   await unregisterAll();
-  await registerHotkey(accelerator);
+  try {
+    await registerHotkey(accelerator);
+  } catch (err) {
+    try {
+      await registerHotkey(previous);
+    } catch {
+      // best-effort restore only; don't mask the original failure
+    }
+    throw err;
+  }
 }
