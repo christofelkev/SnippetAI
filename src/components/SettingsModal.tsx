@@ -36,18 +36,19 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   }, []);
 
   const handleSave = async () => {
+    if (hotkey !== savedHotkey) {
+      try {
+        await rebindHotkey(hotkey, savedHotkey);
+      } catch {
+        setHotkeyError('Hotkey gagal didaftarkan — mungkin sudah dipakai aplikasi lain.');
+        return;
+      }
+    }
+
     await tauriApi.setSetting('ai_provider', provider);
     await tauriApi.setSetting('ai_api_key', apiKey);
     await tauriApi.setSetting('ai_model', model);
     await tauriApi.setSetting('app_theme', appTheme);
-
-    try {
-      await rebindHotkey(hotkey, savedHotkey);
-    } catch {
-      setHotkeyError('Hotkey gagal didaftarkan — mungkin sudah dipakai aplikasi lain.');
-      return;
-    }
-
     await tauriApi.setSetting('global_hotkey', hotkey);
     setSavedHotkey(hotkey);
     onClose();

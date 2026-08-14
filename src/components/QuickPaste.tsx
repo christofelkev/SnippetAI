@@ -10,6 +10,7 @@ export default function QuickPaste() {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
+  const [pasteError, setPasteError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const win = getCurrentWebviewWindow();
 
@@ -31,6 +32,7 @@ export default function QuickPaste() {
         load();
         setQuery('');
         setActive(0);
+        setPasteError('');
         inputRef.current?.focus();
       } else {
         win.hide();
@@ -39,10 +41,16 @@ export default function QuickPaste() {
     return () => { unlisten.then(f => f()); };
   }, []);
 
-  useEffect(() => { setActive(0); }, [query]);
+  useEffect(() => { setActive(0); setPasteError(''); }, [query]);
 
   const choose = async (s: Snippet) => {
-    await writeText(stripImageMarkdown(s.content));
+    try {
+      await writeText(stripImageMarkdown(s.content));
+    } catch (e) {
+      console.error('QuickPaste clipboard write failed:', e);
+      setPasteError('Gagal menyalin ke clipboard — coba lagi.');
+      return;
+    }
     await win.hide();
   };
 
@@ -75,6 +83,11 @@ export default function QuickPaste() {
           className="flex-1 bg-transparent text-sm focus:outline-none placeholder-zinc-600"
         />
       </div>
+      {pasteError && (
+        <div className="px-3 py-1.5 text-[11px] text-red-400 bg-red-950/30 border-b border-zinc-800">
+          {pasteError}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto">
         {results.length === 0 ? (
           <div className="p-6 text-center text-sm text-zinc-600">No snippets found</div>

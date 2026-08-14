@@ -57,7 +57,7 @@ function App() {
   useEffect(() => {
     tauriApi.getSetting('global_hotkey').then(hk => {
       registerHotkey(hk || DEFAULT_HOTKEY).catch(() =>
-        showToast('Hotkey gagal didaftarkan — mungkin dipakai aplikasi lain')
+        showToast('Hotkey gagal didaftarkan — mungkin sudah dipakai aplikasi lain.')
       );
     });
   }, []);
