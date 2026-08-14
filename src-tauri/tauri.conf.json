@@ -12,9 +12,22 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "SnippetAI",
         "width": 1000,
         "height": 700
+      },
+      {
+        "label": "quickpaste",
+        "title": "Quick Paste",
+        "width": 640,
+        "height": 420,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "visible": false,
+        "center": true
       }
     ],
     "security": {
