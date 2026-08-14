@@ -114,7 +114,7 @@ function App() {
           <DetailView 
             snippet={selectedSnippet}
             allSnippets={snippetsState.snippets}
-            onUpdate={(title, content, group) => snippetsState.updateSnippet(selectedSnippet.id, title, content, group)}
+            onUpdate={(title, content, group, language) => snippetsState.updateSnippet(selectedSnippet.id, title, content, group, language)}
             onDelete={() => {
               snippetsState.deleteSnippet(selectedSnippet.id);
               setSelectedSnippet(null);
