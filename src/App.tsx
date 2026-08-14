@@ -8,6 +8,7 @@ import AIModal from './components/AIModal';
 import Toast from './components/Toast';
 import SettingsModal from './components/SettingsModal';
 import { Snippet, tauriApi } from './lib/tauri';
+import { registerHotkey, DEFAULT_HOTKEY } from './lib/hotkey';
 import { Search, Plus, Settings } from 'lucide-react';
 
 function App() {
@@ -52,6 +53,14 @@ function App() {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 2000);
   };
+
+  useEffect(() => {
+    tauriApi.getSetting('global_hotkey').then(hk => {
+      registerHotkey(hk || DEFAULT_HOTKEY).catch(() =>
+        showToast('Hotkey gagal didaftarkan — mungkin dipakai aplikasi lain')
+      );
+    });
+  }, []);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-transparent text-zinc-100">
