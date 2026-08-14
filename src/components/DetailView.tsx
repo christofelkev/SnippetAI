@@ -3,11 +3,14 @@ import { Snippet } from '../lib/tauri';
 import ContentEditor from './ContentEditor';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { Copy, Trash2, Check } from 'lucide-react';
+import { stripImageMarkdown } from '../lib/content';
+
+const LANGUAGES = ['', 'bash', 'javascript', 'typescript', 'python', 'json', 'sql', 'rust', 'go', 'html', 'css', 'yaml', 'markdown'];
 
 interface DetailViewProps {
   snippet: Snippet;
   allSnippets: Snippet[];
-  onUpdate: (title: string, content: string, group: string) => void;
+  onUpdate: (title: string, content: string, group: string, language: string) => void;
   onDelete: () => void;
   onCopy: () => void;
   onSelectSnippet: (snippet: Snippet) => void;
@@ -17,6 +20,7 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
   const [title, setTitle] = useState(snippet.title);
   const [content, setContent] = useState(snippet.content);
   const [group, setGroup] = useState(snippet.group_name);
+  const [language, setLanguage] = useState(snippet.language);
   const [isCopied, setIsCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -24,16 +28,27 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
     setTitle(snippet.title);
     setContent(snippet.content);
     setGroup(snippet.group_name);
+    setLanguage(snippet.language);
   }, [snippet]);
 
   const handleSave = () => {
-    if (title !== snippet.title || content !== snippet.content || group !== snippet.group_name) {
-      onUpdate(title, content, group);
+    if (
+      title !== snippet.title ||
+      content !== snippet.content ||
+      group !== snippet.group_name ||
+      language !== snippet.language
+    ) {
+      onUpdate(title, content, group, language);
     }
   };
 
+  const handleLanguageChange = (value: string) => {
+    setLanguage(value);
+    onUpdate(title, content, group, value);
+  };
+
   const handleCopy = async () => {
-    await writeText(content);
+    await writeText(stripImageMarkdown(content));
     setIsCopied(true);
     onCopy();
     setTimeout(() => setIsCopied(false), 2000);
@@ -77,6 +92,16 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
           />
         </div>
         <div className="flex items-center gap-2">
+          <select
+            value={language}
+            onChange={e => handleLanguageChange(e.target.value)}
+            title="Snippet language"
+            className="bg-zinc-900 border border-zinc-800 rounded-md px-2 py-2 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+          >
+            {LANGUAGES.map(l => (
+              <option key={l} value={l}>{l === '' ? 'Auto' : l}</option>
+            ))}
+          </select>
           <button
             onClick={handleCopy}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors"
@@ -97,6 +122,7 @@ export default function DetailView({ snippet, allSnippets, onUpdate, onDelete, o
       <div className="flex-1 p-6 overflow-y-auto">
         <ContentEditor
           content={content}
+          language={language}
           onChange={setContent}
           onSave={handleSave}
         />

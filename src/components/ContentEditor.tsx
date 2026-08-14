@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { handleImagePaste } from '../lib/imagePaste';
 import Lightbox from './Lightbox';
 import { ImageIcon, Trash2 } from 'lucide-react';
+import hljs from 'highlight.js';
 
 // Regex to match markdown images: ![alt](url)
 const IMAGE_REGEX = /!\[([^\]]*)\]\(([^)]+)\)/g;
 
-interface ContentBlock {
+export interface ContentBlock {
   type: 'text' | 'image';
   value: string;     // text content or image asset URL
   alt?: string;
@@ -41,27 +42,80 @@ function parseContent(content: string): ContentBlock[] {
   return blocks;
 }
 
+/** Guarantee a text block at the start, end, and between adjacent images so
+ *  there is always somewhere to click and type. */
+export function withEditableGaps(blocks: ContentBlock[]): ContentBlock[] {
+  if (blocks.length === 0) {
+    return [{ type: 'text', value: '' }];
+  }
+
+  const result: ContentBlock[] = [];
+
+  if (blocks[0].type === 'image') {
+    result.push({ type: 'text', value: '' });
+  }
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    result.push(block);
+    if (block.type === 'image') {
+      const next = blocks[i + 1];
+      if (!next || next.type === 'image') {
+        result.push({ type: 'text', value: '' });
+      }
+    }
+  }
+
+  return result;
+}
+
 function blocksToString(blocks: ContentBlock[]): string {
   return blocks
     .map(b => b.type === 'image' ? `![${b.alt || 'Image'}](${b.value})` : b.value)
     .join('');
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightCode(code: string, language: string): string {
+  try {
+    if (language && hljs.getLanguage(language)) {
+      return hljs.highlight(code, { language }).value;
+    }
+    return hljs.highlightAuto(code).value;
+  } catch {
+    return escapeHtml(code);
+  }
+}
+
 interface ContentEditorProps {
   content: string;
+  language: string;
   onChange: (content: string) => void;
   onSave: () => void;
 }
 
-export default function ContentEditor({ content, onChange, onSave }: ContentEditorProps) {
-  const [blocks, setBlocks] = useState<ContentBlock[]>(() => parseContent(content));
+export default function ContentEditor({ content, language, onChange, onSave }: ContentEditorProps) {
+  const [blocks, setBlocks] = useState<ContentBlock[]>(() => withEditableGaps(parseContent(content)));
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const textareaRefs = useRef<Map<number, HTMLTextAreaElement>>(new Map());
 
   useEffect(() => {
-    setBlocks(parseContent(content));
+    setBlocks(withEditableGaps(parseContent(content)));
   }, [content]);
+
+  // Keep editingIndex valid whenever blocks are replaced: if it no longer
+  // points at a text block, drop back to "not editing" instead of leaving a
+  // stale index that points at nothing (or at an image).
+  useEffect(() => {
+    setEditingIndex(prev =>
+      prev !== null && blocks[prev]?.type === 'text' ? prev : null
+    );
+  }, [blocks]);
 
   const updateTextBlock = (index: number, value: string) => {
     const newBlocks = [...blocks];
@@ -105,24 +159,45 @@ export default function ContentEditor({ content, onChange, onSave }: ContentEdit
     <div className="flex flex-col gap-1 min-h-[300px]">
       {blocks.map((block, i) =>
         block.type === 'text' ? (
-          <textarea
-            key={`text-${i}`}
-            ref={el => {
-              if (el) {
-                textareaRefs.current.set(i, el);
-                autoResize(el);
-              }
-            }}
-            value={block.value}
-            onChange={e => {
-              updateTextBlock(i, e.target.value);
-              autoResize(e.target);
-            }}
-            onBlur={onSave}
-            onPaste={e => handlePaste(e, i)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 font-mono text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50 resize-none transition-colors"
-            placeholder="Type your snippet here... (Ctrl+V to paste images)"
-          />
+          editingIndex === i ? (
+            <textarea
+              key={`text-${i}`}
+              ref={el => {
+                if (el) {
+                  textareaRefs.current.set(i, el);
+                  autoResize(el);
+                }
+              }}
+              autoFocus
+              value={block.value}
+              onChange={e => {
+                updateTextBlock(i, e.target.value);
+                autoResize(e.target);
+              }}
+              onBlur={() => {
+                setEditingIndex(null);
+                onSave();
+              }}
+              onPaste={e => handlePaste(e, i)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 font-mono text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50 resize-none transition-colors"
+              placeholder="Type your snippet here... (Ctrl+V to paste images)"
+            />
+          ) : (
+            <pre
+              key={`text-${i}`}
+              onClick={() => setEditingIndex(i)}
+              className="w-full min-h-[60px] bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-sm overflow-x-auto cursor-text hover:border-zinc-700 transition-colors"
+            >
+              {block.value.trim() ? (
+                <code
+                  className="hljs bg-transparent p-0 font-mono"
+                  dangerouslySetInnerHTML={{ __html: highlightCode(block.value, language) }}
+                />
+              ) : (
+                <span className="text-zinc-600 font-mono">Click to edit…</span>
+              )}
+            </pre>
+          )
         ) : (
           <div
             key={`img-${i}`}

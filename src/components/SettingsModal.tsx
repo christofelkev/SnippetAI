@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import { tauriApi } from '../lib/tauri';
+import { rebindHotkey, DEFAULT_HOTKEY } from '../lib/hotkey';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -11,6 +12,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
   const [appTheme, setAppTheme] = useState('theme-default');
+  const [hotkey, setHotkey] = useState(DEFAULT_HOTKEY);
+  const [savedHotkey, setSavedHotkey] = useState(DEFAULT_HOTKEY);
+  const [hotkeyError, setHotkeyError] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,21 +22,35 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
       tauriApi.getSetting('ai_provider'),
       tauriApi.getSetting('ai_api_key'),
       tauriApi.getSetting('ai_model'),
-      tauriApi.getSetting('app_theme')
-    ]).then(([p, k, m, t]) => {
+      tauriApi.getSetting('app_theme'),
+      tauriApi.getSetting('global_hotkey')
+    ]).then(([p, k, m, t, hk]) => {
       setProvider(p || 'deepseek');
       setApiKey(k || '');
       setModel(m || '');
       setAppTheme(t || 'theme-default');
+      setHotkey(hk || DEFAULT_HOTKEY);
+      setSavedHotkey(hk || DEFAULT_HOTKEY);
       setLoading(false);
     });
   }, []);
 
   const handleSave = async () => {
+    if (hotkey !== savedHotkey) {
+      try {
+        await rebindHotkey(hotkey, savedHotkey);
+      } catch {
+        setHotkeyError('Hotkey gagal didaftarkan — mungkin sudah dipakai aplikasi lain.');
+        return;
+      }
+    }
+
     await tauriApi.setSetting('ai_provider', provider);
     await tauriApi.setSetting('ai_api_key', apiKey);
     await tauriApi.setSetting('ai_model', model);
     await tauriApi.setSetting('app_theme', appTheme);
+    await tauriApi.setSetting('global_hotkey', hotkey);
+    setSavedHotkey(hotkey);
     onClose();
   };
 
@@ -62,7 +80,25 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <option value="theme-cyberpunk">Cyberpunk</option>
             </select>
           </div>
-          
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Quick-Paste Hotkey</label>
+            <input
+              type="text"
+              value={hotkey}
+              onChange={e => {
+                setHotkey(e.target.value);
+                setHotkeyError('');
+              }}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors font-mono"
+              placeholder="CmdOrCtrl+Shift+Space"
+            />
+            <p className="text-[10px] text-zinc-500 mt-1">e.g. CmdOrCtrl+Shift+Space, Alt+Space. Restart not required.</p>
+            {hotkeyError && (
+              <p className="text-[10px] text-red-400 mt-1">{hotkeyError}</p>
+            )}
+          </div>
+
           <hr className="border-zinc-800" />
           
           <div>

@@ -2,7 +2,11 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::Manager;
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+    Manager, WindowEvent,
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct Snippet {
@@ -12,6 +16,7 @@ pub struct Snippet {
     pub group_name: String,
     pub created_at: i64,
     pub updated_at: i64,
+    pub language: String,
 }
 
 struct AppState {
@@ -43,6 +48,20 @@ fn init_db(app_dir: &std::path::Path) -> Result<Connection, rusqlite::Error> {
         [],
     )?;
 
+    // Migration: add `language` column if this DB predates it.
+    let mut col_stmt = conn.prepare("PRAGMA table_info(snippets)")?;
+    let has_language = col_stmt
+        .query_map([], |row| row.get::<_, String>(1))?
+        .filter_map(|r| r.ok())
+        .any(|name| name == "language");
+    drop(col_stmt);
+    if !has_language {
+        conn.execute(
+            "ALTER TABLE snippets ADD COLUMN language TEXT NOT NULL DEFAULT ''",
+            [],
+        )?;
+    }
+
     Ok(conn)
 }
 
@@ -61,7 +80,7 @@ fn generate_id() -> String {
 fn get_snippets(state: tauri::State<AppState>) -> Result<Vec<Snippet>, String> {
     let conn = state.db.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT id, title, content, group_name, created_at, updated_at FROM snippets ORDER BY created_at DESC")
+        .prepare("SELECT id, title, content, group_name, created_at, updated_at, language FROM snippets ORDER BY created_at DESC")
         .map_err(|e| e.to_string())?;
     let snippets = stmt
         .query_map([], |row| {
@@ -72,6 +91,7 @@ fn get_snippets(state: tauri::State<AppState>) -> Result<Vec<Snippet>, String> {
                 group_name: row.get(3)?,
                 created_at: row.get(4)?,
                 updated_at: row.get(5)?,
+                language: row.get(6)?,
             })
         })
         .map_err(|e| e.to_string())?
@@ -95,17 +115,19 @@ fn add_snippet(
         group_name: group_name.unwrap_or_default(),
         created_at: current_timestamp(),
         updated_at: current_timestamp(),
+        language: String::new(),
     };
 
     conn.execute(
-        "INSERT INTO snippets (id, title, content, group_name, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO snippets (id, title, content, group_name, created_at, updated_at, language) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             snippet.id,
             snippet.title,
             snippet.content,
             snippet.group_name,
             snippet.created_at,
-            snippet.updated_at
+            snippet.updated_at,
+            snippet.language
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -119,6 +141,7 @@ fn update_snippet(
     title: Option<String>,
     content: Option<String>,
     group_name: Option<String>,
+    language: Option<String>,
     state: tauri::State<AppState>,
 ) -> Result<Snippet, String> {
     let conn = state.db.lock().unwrap();
@@ -142,11 +165,17 @@ fn update_snippet(
             params![g, updated_at, id],
         ).map_err(|e| e.to_string())?;
     }
+    if let Some(l) = &language {
+        conn.execute(
+            "UPDATE snippets SET language = ?1, updated_at = ?2 WHERE id = ?3",
+            params![l, updated_at, id],
+        ).map_err(|e| e.to_string())?;
+    }
 
     let mut stmt = conn
-        .prepare("SELECT id, title, content, group_name, created_at, updated_at FROM snippets WHERE id = ?1")
+        .prepare("SELECT id, title, content, group_name, created_at, updated_at, language FROM snippets WHERE id = ?1")
         .map_err(|e| e.to_string())?;
-    
+
     let snippet = stmt.query_row(params![id], |row| {
         Ok(Snippet {
             id: row.get(0)?,
@@ -155,6 +184,7 @@ fn update_snippet(
             group_name: row.get(3)?,
             created_at: row.get(4)?,
             updated_at: row.get(5)?,
+            language: row.get(6)?,
         })
     }).map_err(|e| e.to_string())?;
 
@@ -174,7 +204,7 @@ fn search_snippets(query: String, state: tauri::State<AppState>) -> Result<Vec<S
     let conn = state.db.lock().unwrap();
     let like_query = format!("%{}%", query);
     let mut stmt = conn
-        .prepare("SELECT id, title, content, group_name, created_at, updated_at FROM snippets WHERE title LIKE ?1 OR content LIKE ?2 ORDER BY created_at DESC")
+        .prepare("SELECT id, title, content, group_name, created_at, updated_at, language FROM snippets WHERE title LIKE ?1 OR content LIKE ?2 ORDER BY created_at DESC")
         .map_err(|e| e.to_string())?;
     let snippets = stmt
         .query_map(params![like_query, like_query], |row| {
@@ -185,6 +215,7 @@ fn search_snippets(query: String, state: tauri::State<AppState>) -> Result<Vec<S
                 group_name: row.get(3)?,
                 created_at: row.get(4)?,
                 updated_at: row.get(5)?,
+                language: row.get(6)?,
             })
         })
         .map_err(|e| e.to_string())?
@@ -252,16 +283,58 @@ fn read_image_from_disk(filename: String, app: tauri::AppHandle) -> Result<Vec<u
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             let app_dir = app.path().app_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
             let db = init_db(&app_dir).expect("Failed to initialize database");
             app.manage(AppState {
                 db: Mutex::new(db),
             });
+
+            // System tray
+            let open_i = MenuItem::with_id(app, "open", "Open SnippetAI", true, None::<&str>)?;
+            let quick_i = MenuItem::with_id(app, "quickpaste", "Quick Paste", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&open_i, &quick_i, &quit_i])?;
+
+            TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("SnippetAI")
+                .menu(&menu)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "open" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                    "quickpaste" => {
+                        if let Some(w) = app.get_webview_window("quickpaste") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                    "quit" => app.exit(0),
+                    _ => {}
+                })
+                .build(app)?;
+
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_snippets,
