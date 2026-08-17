@@ -28,8 +28,8 @@ export function useSnippets() {
     fetchSnippets();
   }, [fetchSnippets]);
 
-  const addSnippet = async (title: string, content: string, groupName: string = '') => {
-    await tauriApi.addSnippet(title, content, groupName);
+  const addSnippet = async (title: string, content: string, groupName: string = '', language: string = '') => {
+    await tauriApi.addSnippet(title, content, groupName, language);
     fetchSnippets();
   };
 

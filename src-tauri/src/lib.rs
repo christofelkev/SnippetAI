@@ -105,6 +105,7 @@ fn add_snippet(
     title: String,
     content: String,
     group_name: Option<String>,
+    language: Option<String>,
     state: tauri::State<AppState>,
 ) -> Result<Snippet, String> {
     let conn = state.db.lock().unwrap();
@@ -115,7 +116,7 @@ fn add_snippet(
         group_name: group_name.unwrap_or_default(),
         created_at: current_timestamp(),
         updated_at: current_timestamp(),
-        language: String::new(),
+        language: language.unwrap_or_default(),
     };
 
     conn.execute(

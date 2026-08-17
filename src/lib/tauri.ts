@@ -13,8 +13,8 @@ export interface Snippet {
 export const tauriApi = {
   getSnippets: () => invoke<Snippet[]>('get_snippets'),
   
-  addSnippet: (title: string, content: string, groupName?: string) => 
-    invoke<Snippet>('add_snippet', { title, content, groupName }),
+  addSnippet: (title: string, content: string, groupName?: string, language?: string) =>
+    invoke<Snippet>('add_snippet', { title, content, groupName, language }),
   
   updateSnippet: (id: string, title?: string, content?: string, groupName?: string, language?: string) =>
     invoke<Snippet>('update_snippet', { id, title, content, groupName, language }),
