@@ -4,8 +4,7 @@ import ContentEditor from './ContentEditor';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { Copy, Trash2, Check } from 'lucide-react';
 import { stripImageMarkdown } from '../lib/content';
-
-const LANGUAGES = ['', 'bash', 'javascript', 'typescript', 'python', 'json', 'sql', 'rust', 'go', 'html', 'css', 'yaml', 'markdown'];
+import { LANGUAGES } from '../lib/languages';
 
 interface DetailViewProps {
   snippet: Snippet;

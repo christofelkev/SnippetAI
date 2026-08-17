@@ -3,10 +3,11 @@ import { X, Sparkles, Loader2 } from 'lucide-react';
 import { handleImagePaste } from '../lib/imagePaste';
 import { generateMetadata } from '../lib/ai';
 import { tauriApi } from '../lib/tauri';
+import { LANGUAGES } from '../lib/languages';
 
 interface AddPanelProps {
   onClose: () => void;
-  onAdd: (title: string, content: string, group: string) => void;
+  onAdd: (title: string, content: string, group: string, language: string) => void;
   groups: string[];
 }
 
@@ -14,6 +15,7 @@ export default function AddPanel({ onClose, onAdd, groups }: AddPanelProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [group, setGroup] = useState('');
+  const [language, setLanguage] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -30,9 +32,11 @@ export default function AddPanel({ onClose, onAdd, groups }: AddPanelProps) {
       const meta = await generateMetadata(provider, apiKey, model, content);
       const filledTitle = !title.trim() && !!meta.title;
       const filledGroup = !group.trim() && !!meta.group;
+      const filledLanguage = !language && !!meta.language;
       if (filledTitle) setTitle(meta.title);
       if (filledGroup) setGroup(meta.group);
-      if (!filledTitle && !filledGroup) {
+      if (filledLanguage) setLanguage(meta.language);
+      if (!filledTitle && !filledGroup && !filledLanguage) {
         setAiError('AI could not suggest anything new — try adding more content.');
       }
     } catch (err: any) {
@@ -95,21 +99,36 @@ export default function AddPanel({ onClose, onAdd, groups }: AddPanelProps) {
             />
           </div>
           
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Group (Optional)</label>
-            <input
-              type="text"
-              value={group}
-              onChange={e => setGroup(e.target.value)}
-              list="group-list"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors uppercase"
-              placeholder="e.g. DOCKER"
-            />
-            <datalist id="group-list">
-              {groups.map(g => (
-                <option key={g} value={g} />
-              ))}
-            </datalist>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">Group (Optional)</label>
+              <input
+                type="text"
+                value={group}
+                onChange={e => setGroup(e.target.value)}
+                list="group-list"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors uppercase"
+                placeholder="e.g. DOCKER"
+              />
+              <datalist id="group-list">
+                {groups.map(g => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">Language</label>
+              <select
+                value={language}
+                onChange={e => setLanguage(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+              >
+                {LANGUAGES.map(l => (
+                  <option key={l} value={l}>{l === '' ? 'Auto' : l}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
         
@@ -121,7 +140,7 @@ export default function AddPanel({ onClose, onAdd, groups }: AddPanelProps) {
             Cancel
           </button>
           <button
-            onClick={() => onAdd(title, content, group)}
+            onClick={() => onAdd(title, content, group, language)}
             disabled={!title || !content}
             className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

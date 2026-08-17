@@ -1,5 +1,6 @@
 import { fetch } from '@tauri-apps/plugin-http';
 import { Snippet } from './tauri';
+import { LANGUAGES } from './languages';
 
 export interface AIGroupingResult {
   groups: {
@@ -12,7 +13,10 @@ export interface AIGroupingResult {
 export interface GeneratedMetadata {
   title: string;
   group: string;
+  language: string;
 }
+
+const ALLOWED_LANGUAGES = new Set(LANGUAGES.filter(Boolean));
 
 const getGroupingPrompt = (snippets: Snippet[]) => {
   const data = snippets.map(s => ({ id: s.id, title: s.title, content: s.content }));
@@ -38,7 +42,8 @@ const getMetadataPrompt = (content: string) => `You are an assistant that writes
 Given the snippet content below, respond ONLY with a valid JSON object matching this schema:
 {
   "title": "string, a concise descriptive title (max 8 words)",
-  "group": "string, a short UPPERCASE category name (e.g. DOCKER, GIT, PYTHON), or an empty string if unclear"
+  "group": "string, a short UPPERCASE category name (e.g. DOCKER, GIT, PYTHON), or an empty string if unclear",
+  "language": "string, exactly one of: ${Array.from(ALLOWED_LANGUAGES).join(', ')} — or an empty string if none fit"
 }
 
 Snippet content:
@@ -65,11 +70,20 @@ export async function generateMetadata(
   return normalizeMetadata(parseJsonResponse<Record<string, unknown>>(text));
 }
 
-/** Pulls a title/group pair out of a loosely-typed AI response, defaulting missing or non-string fields to ''. */
+/**
+ * Pulls a title/group/language triple out of a loosely-typed AI response.
+ * Missing or non-string fields default to ''. `language` additionally must
+ * match one of the app's supported identifiers (case-insensitively) or it
+ * is dropped to '' — a value outside that set would just show as "Auto" in
+ * the language dropdown anyway, so rejecting it here surfaces the same
+ * outcome without carrying a nonsense value through app state.
+ */
 export function normalizeMetadata(raw: Record<string, unknown>): GeneratedMetadata {
+  const language = typeof raw.language === 'string' ? raw.language.trim().toLowerCase() : '';
   return {
     title: typeof raw.title === 'string' ? raw.title.trim() : '',
     group: typeof raw.group === 'string' ? raw.group.trim().toUpperCase() : '',
+    language: ALLOWED_LANGUAGES.has(language) ? language : '',
   };
 }
 

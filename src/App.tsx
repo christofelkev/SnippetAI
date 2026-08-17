@@ -142,8 +142,8 @@ function App() {
       {isAddPanelOpen && (
         <AddPanel 
           onClose={() => setIsAddPanelOpen(false)}
-          onAdd={async (title, content, group) => {
-            await snippetsState.addSnippet(title, content, group);
+          onAdd={async (title, content, group, language) => {
+            await snippetsState.addSnippet(title, content, group, language);
             setIsAddPanelOpen(false);
             showToast("Snippet added");
           }}
