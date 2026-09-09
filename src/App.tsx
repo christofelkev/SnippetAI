@@ -11,6 +11,46 @@ import { Snippet, tauriApi } from './lib/tauri';
 import { registerHotkey, DEFAULT_HOTKEY } from './lib/hotkey';
 import { Search, Plus, Settings } from 'lucide-react';
 
+const DEFAULT_SIDEBAR_WIDTH = 240;
+const MIN_SIDEBAR_WIDTH = 160;
+const MAX_SIDEBAR_WIDTH = 450;
+
+const DEFAULT_LIST_WIDTH = 320;
+const MIN_LIST_WIDTH = 220;
+const MAX_LIST_WIDTH = 600;
+
+function getStoredWidth(key: string, defaultVal: number, min: number, max: number): number {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= min && parsed <= max) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return defaultVal;
+}
+
+interface ResizeHandleProps {
+  onMouseDown: (e: React.MouseEvent) => void;
+  onDoubleClick: () => void;
+  title?: string;
+}
+
+function ResizeHandle({ onMouseDown, onDoubleClick, title }: ResizeHandleProps) {
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      onDoubleClick={onDoubleClick}
+      title={title || 'Drag to resize (Double-click to reset)'}
+      className="group relative w-1 bg-zinc-800 hover:bg-indigo-500 active:bg-indigo-500 cursor-col-resize transition-colors select-none shrink-0 z-10"
+    >
+      <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize" />
+    </div>
+  );
+}
+
 function App() {
   const snippetsState = useSnippets();
   const [selectedSnippet, setSelectedSnippet] = useState<Snippet | null>(null);
@@ -18,6 +58,67 @@ function App() {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+
+  const [sidebarWidth, setSidebarWidth] = useState(() =>
+    getStoredWidth('snippetai_sidebar_width', DEFAULT_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)
+  );
+  const [listWidth, setListWidth] = useState(() =>
+    getStoredWidth('snippetai_list_width', DEFAULT_LIST_WIDTH, MIN_LIST_WIDTH, MAX_LIST_WIDTH)
+  );
+
+  const startResizeSidebar = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, startWidth + delta));
+      setSidebarWidth(nextWidth);
+      try {
+        localStorage.setItem('snippetai_sidebar_width', String(nextWidth));
+      } catch {}
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.removeProperty('user-select');
+      document.body.style.removeProperty('cursor');
+    };
+
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const startResizeList = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = listWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = Math.max(MIN_LIST_WIDTH, Math.min(MAX_LIST_WIDTH, startWidth + delta));
+      setListWidth(nextWidth);
+      try {
+        localStorage.setItem('snippetai_list_width', String(nextWidth));
+      } catch {}
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.removeProperty('user-select');
+      document.body.style.removeProperty('cursor');
+    };
+
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
 
   const loadTheme = async () => {
     const theme = await tauriApi.getSetting('app_theme');
@@ -69,9 +170,24 @@ function App() {
         groupCounts={snippetsState.groupCounts}
         selectedGroup={snippetsState.selectedGroup}
         onSelectGroup={snippetsState.setSelectedGroup}
+        width={sidebarWidth}
+      />
+
+      <ResizeHandle
+        onMouseDown={startResizeSidebar}
+        onDoubleClick={() => {
+          setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+          try {
+            localStorage.setItem('snippetai_sidebar_width', String(DEFAULT_SIDEBAR_WIDTH));
+          } catch {}
+        }}
+        title="Drag to resize sidebar (Double-click to reset)"
       />
       
-      <div className="flex flex-col w-1/3 border-r border-zinc-800 bg-zinc-900/40">
+      <div 
+        style={{ width: `${listWidth}px` }}
+        className="flex flex-col shrink-0 bg-zinc-900/40 overflow-hidden"
+      >
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -117,8 +233,19 @@ function App() {
           </button>
         </div>
       </div>
+
+      <ResizeHandle
+        onMouseDown={startResizeList}
+        onDoubleClick={() => {
+          setListWidth(DEFAULT_LIST_WIDTH);
+          try {
+            localStorage.setItem('snippetai_list_width', String(DEFAULT_LIST_WIDTH));
+          } catch {}
+        }}
+        title="Drag to resize snippet list (Double-click to reset)"
+      />
       
-      <div className="flex-1 bg-zinc-950/20 flex flex-col">
+      <div className="flex-1 min-w-0 bg-zinc-950/20 flex flex-col">
         {selectedSnippet ? (
           <DetailView 
             snippet={selectedSnippet}

@@ -112,4 +112,17 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--color-zinc-500, #52525b);
   }
+
+  /* Override highlight.js github-dark defaults to eliminate double padding and conflicting backgrounds */
+  pre code.hljs {
+    display: block;
+    padding: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+  code.hljs {
+    padding: 0 !important;
+    background: transparent !important;
+  }
 }
+

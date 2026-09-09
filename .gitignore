@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Agent-only scratch context — never commit, see file header
+AGENT_CONTEXT.md

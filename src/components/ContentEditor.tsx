@@ -97,25 +97,96 @@ interface ContentEditorProps {
   onSave: () => void;
 }
 
+interface CodeBlockItemProps {
+  value: string;
+  language: string;
+  onChange: (val: string) => void;
+  onSave: () => void;
+  onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+}
+
+function CodeBlockItem({ value, language, onChange, onSave, onPaste }: CodeBlockItemProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.max(el.scrollHeight, 64)}px`;
+  };
+
+  useEffect(() => {
+    autoResize();
+  }, [value]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const newValue = value.substring(0, start) + '  ' + value.substring(end);
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = start + 2;
+      });
+    }
+  };
+
+  const highlightedHtml = value.trim()
+    ? highlightCode(value, language) + (value.endsWith('\n') ? ' ' : '')
+    : '';
+
+  return (
+    <div className="relative w-full min-h-[64px] bg-zinc-900 border border-zinc-800 rounded-lg focus-within:border-indigo-500/60 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-colors group hover:border-zinc-700">
+      {/* Syntax highlighted layer */}
+      <pre
+        aria-hidden="true"
+        className="w-full min-h-[64px] p-4 m-0 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words overflow-hidden pointer-events-none select-none box-border"
+      >
+        {highlightedHtml ? (
+          <code
+            className="hljs !p-0 !bg-transparent font-mono text-sm leading-relaxed block"
+            dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+          />
+        ) : (
+          <span className="text-zinc-600 font-mono text-sm leading-relaxed block">
+            {value.length === 0 ? '' : ' '}
+          </span>
+        )}
+      </pre>
+
+      {/* Actual interactive textarea layer */}
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={e => {
+          onChange(e.target.value);
+          autoResize();
+        }}
+        onBlur={onSave}
+        onKeyDown={handleKeyDown}
+        onPaste={onPaste}
+        spellCheck={false}
+        className={`absolute inset-0 w-full h-full p-4 m-0 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words resize-none bg-transparent caret-zinc-100 border-none outline-none focus:outline-none focus:ring-0 overflow-hidden box-border ${
+          value.length > 0
+            ? 'text-transparent selection:bg-indigo-500/40 selection:text-transparent selection:[-webkit-text-fill-color:transparent]'
+            : 'text-zinc-300 placeholder-zinc-600'
+        }`}
+        placeholder="Type your snippet here... (Ctrl+V to paste images)"
+      />
+    </div>
+  );
+}
+
 export default function ContentEditor({ content, language, onChange, onSave }: ContentEditorProps) {
   const [blocks, setBlocks] = useState<ContentBlock[]>(() => withEditableGaps(parseContent(content)));
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState('');
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const textareaRefs = useRef<Map<number, HTMLTextAreaElement>>(new Map());
 
   useEffect(() => {
     setBlocks(withEditableGaps(parseContent(content)));
   }, [content]);
-
-  // Keep editingIndex valid whenever blocks are replaced: if it no longer
-  // points at a text block, drop back to "not editing" instead of leaving a
-  // stale index that points at nothing (or at an image).
-  useEffect(() => {
-    setEditingIndex(prev =>
-      prev !== null && blocks[prev]?.type === 'text' ? prev : null
-    );
-  }, [blocks]);
 
   const updateTextBlock = (index: number, value: string) => {
     const newBlocks = [...blocks];
@@ -149,55 +220,18 @@ export default function ContentEditor({ content, language, onChange, onSave }: C
     }
   };
 
-  const autoResize = (el: HTMLTextAreaElement | null) => {
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.max(el.scrollHeight, 60) + 'px';
-  };
-
   return (
     <div className="flex flex-col gap-1 min-h-[300px]">
       {blocks.map((block, i) =>
         block.type === 'text' ? (
-          editingIndex === i ? (
-            <textarea
-              key={`text-${i}`}
-              ref={el => {
-                if (el) {
-                  textareaRefs.current.set(i, el);
-                  autoResize(el);
-                }
-              }}
-              autoFocus
-              value={block.value}
-              onChange={e => {
-                updateTextBlock(i, e.target.value);
-                autoResize(e.target);
-              }}
-              onBlur={() => {
-                setEditingIndex(null);
-                onSave();
-              }}
-              onPaste={e => handlePaste(e, i)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 font-mono text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50 resize-none transition-colors"
-              placeholder="Type your snippet here... (Ctrl+V to paste images)"
-            />
-          ) : (
-            <pre
-              key={`text-${i}`}
-              onClick={() => setEditingIndex(i)}
-              className="w-full min-h-[60px] bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-sm overflow-x-auto cursor-text hover:border-zinc-700 transition-colors"
-            >
-              {block.value.trim() ? (
-                <code
-                  className="hljs bg-transparent p-0 font-mono"
-                  dangerouslySetInnerHTML={{ __html: highlightCode(block.value, language) }}
-                />
-              ) : (
-                <span className="text-zinc-600 font-mono">Click to edit…</span>
-              )}
-            </pre>
-          )
+          <CodeBlockItem
+            key={`text-${i}`}
+            value={block.value}
+            language={language}
+            onChange={val => updateTextBlock(i, val)}
+            onSave={onSave}
+            onPaste={e => handlePaste(e, i)}
+          />
         ) : (
           <div
             key={`img-${i}`}

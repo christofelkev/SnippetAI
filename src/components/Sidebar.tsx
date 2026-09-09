@@ -5,11 +5,15 @@ interface SidebarProps {
   groupCounts: Record<string, number>;
   selectedGroup: string | null;
   onSelectGroup: (group: string | null) => void;
+  width?: number;
 }
 
-export default function Sidebar({ groups, groupCounts, selectedGroup, onSelectGroup }: SidebarProps) {
+export default function Sidebar({ groups, groupCounts, selectedGroup, onSelectGroup, width }: SidebarProps) {
   return (
-    <div className="w-64 bg-zinc-950/40 border-r border-zinc-800 flex flex-col">
+    <div
+      style={width !== undefined ? { width: `${width}px` } : undefined}
+      className={`${width === undefined ? 'w-64' : ''} shrink-0 bg-zinc-950/40 flex flex-col h-full overflow-hidden`}
+    >
       <div className="p-4 border-b border-zinc-800">
         <h2 className="text-sm font-semibold tracking-wider text-zinc-500 uppercase">Groups</h2>
       </div>
