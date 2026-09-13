@@ -171,6 +171,7 @@ function App() {
         selectedGroup={snippetsState.selectedGroup}
         onSelectGroup={snippetsState.setSelectedGroup}
         width={sidebarWidth}
+        onReorderGroups={snippetsState.reorderGroups}
       />
 
       <ResizeHandle
