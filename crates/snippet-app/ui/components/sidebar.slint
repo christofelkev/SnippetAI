@@ -1,0 +1,134 @@
+import { Theme } from "../theme.slint";
+import { ScrollView } from "std-widgets.slint";
+
+export struct GroupItem {
+    name: string,
+    count: int,
+}
+
+export component Sidebar inherits Rectangle {
+    in property <[GroupItem]> groups: [];
+    in property <string> selected_group: "";
+    in property <int> all_count: 0;
+
+    callback select_group(string);
+
+    background: Theme.surface;
+
+    VerticalLayout {
+        padding-top: 14px;
+        padding-bottom: 14px;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
+
+        // Header
+        Text {
+            text: "GROUPS";
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: Theme.text_muted;
+        }
+
+        // All Snippets button
+        all_btn := Rectangle {
+            height: 36px;
+            border-radius: 6px;
+            background: root.selected_group == "" ? 
+                (Theme.theme_id == 1 ? #e60012.transparentize(80%) : Theme.accent.transparentize(80%)) :
+                (all_touch.has-hover ? Theme.surface_elevated : Colors.transparent);
+
+            all_touch := TouchArea {
+                clicked => { root.select_group(""); }
+            }
+
+            HorizontalLayout {
+                padding-left: 10px;
+                padding-right: 10px;
+                alignment: space-between;
+
+                Text {
+                    text: "📁 All Snippets";
+                    font-size: 13px;
+                    vertical-alignment: center;
+                    color: root.selected_group == "" ? Theme.accent : Theme.text_primary;
+                }
+
+                Rectangle {
+                    width: 22px;
+                    height: 18px;
+                    border-radius: 9px;
+                    background: Theme.surface_elevated;
+                    y: (parent.height - self.height) / 2;
+
+                    Text {
+                        text: root.all_count;
+                        font-size: 11px;
+                        color: Theme.text_muted;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // Groups list
+        ScrollView {
+            VerticalLayout {
+                spacing: 4px;
+                for group[index] in root.groups: Rectangle {
+                    height: 36px;
+                    border-radius: 6px;
+                    background: root.selected_group == group.name ?
+                        (Theme.theme_id == 1 ? #e60012.transparentize(80%) : Theme.accent.transparentize(80%)) :
+                        (item_touch.has-hover ? Theme.surface_elevated : Colors.transparent);
+
+                    item_touch := TouchArea {
+                        clicked => { root.select_group(group.name); }
+                    }
+
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        alignment: space-between;
+
+                        HorizontalLayout {
+                            spacing: 8px;
+
+                            Text {
+                                text: root.selected_group == group.name ? "📂" : "📁";
+                                font-size: 12px;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                text: group.name;
+                                font-size: 13px;
+                                overflow: elide;
+                                color: root.selected_group == group.name ? Theme.accent : Theme.text_primary;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        Rectangle {
+                            width: 22px;
+                            height: 18px;
+                            border-radius: 9px;
+                            background: Theme.surface_elevated;
+                            y: (parent.height - self.height) / 2;
+
+                            Text {
+                                text: group.count;
+                                font-size: 11px;
+                                color: Theme.text_muted;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

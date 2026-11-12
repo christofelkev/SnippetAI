@@ -1,0 +1,224 @@
+import { Theme } from "../theme.slint";
+import { ScrollView, LineEdit } from "std-widgets.slint";
+
+export struct SnippetItem {
+    id: string,
+    title: string,
+    preview: string,
+    group_name: string,
+    language: string,
+}
+
+export component SnippetList inherits Rectangle {
+    in property <[SnippetItem]> snippets: [];
+    in property <string> selected_id: "";
+    in-out property <string> search_query: "";
+
+    callback select_snippet(string);
+    callback add_snippet();
+    callback open_ai();
+    callback open_settings();
+    callback search_edited(string);
+
+    background: Theme.surface.transparentize(30%);
+
+    VerticalLayout {
+        // Search & Add Bar
+        Rectangle {
+            height: 56px;
+
+            Rectangle {
+                y: parent.height - 1px;
+                height: 1px;
+                background: Theme.border;
+            }
+
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 12px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                spacing: 8px;
+
+                search_input := LineEdit {
+                    horizontal-stretch: 1;
+                    placeholder-text: "Search (Ctrl+K)...";
+                    text: root.search_query;
+                    edited => {
+                        root.search_query = self.text;
+                        root.search_edited(self.text);
+                    }
+                }
+
+                add_btn := Rectangle {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 6px;
+                    background: add_touch.has-hover ? Theme.accent_hover : Theme.accent;
+
+                    add_touch := TouchArea {
+                        clicked => { root.add_snippet(); }
+                    }
+
+                    Text {
+                        text: "+";
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: #ffffff;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // Snippet cards scroll view
+        ScrollView {
+            VerticalLayout {
+                spacing: 0px;
+
+                if root.snippets.length == 0: Rectangle {
+                    height: 120px;
+                    Text {
+                        text: "No snippets found";
+                        color: Theme.text_muted;
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                for item in root.snippets: Rectangle {
+                    height: 72px;
+                    background: root.selected_id == item.id ?
+                        Theme.surface_elevated :
+                        (card_touch.has-hover ? Theme.surface_elevated.transparentize(50%) : Colors.transparent);
+
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: Theme.border_subtle;
+                    }
+
+                    card_touch := TouchArea {
+                        clicked => { root.select_snippet(item.id); }
+                    }
+
+                    VerticalLayout {
+                        padding-left: 14px;
+                        padding-right: 14px;
+                        padding-top: 10px;
+                        padding-bottom: 10px;
+                        spacing: 4px;
+
+                        HorizontalLayout {
+                            alignment: space-between;
+
+                            Text {
+                                text: item.title == "" ? "Untitled Snippet" : item.title;
+                                font-size: 13px;
+                                font-weight: 600;
+                                overflow: elide;
+                                color: root.selected_id == item.id ? Theme.text_primary : Theme.text_primary.transparentize(15%);
+                            }
+
+                            if item.group_name != "": Rectangle {
+                                height: 16px;
+                                border-radius: 3px;
+                                background: Theme.surface_elevated;
+
+                                HorizontalLayout {
+                                    padding-left: 5px;
+                                    padding-right: 5px;
+
+                                    Text {
+                                        text: item.group_name;
+                                        font-size: 9px;
+                                        font-weight: 700;
+                                        color: Theme.text_secondary;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: item.preview;
+                            font-size: 11px;
+                            overflow: elide;
+                            color: Theme.text_muted;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Bottom action bar
+        Rectangle {
+            height: 44px;
+            background: Theme.surface;
+
+            Rectangle {
+                y: 0px;
+                height: 1px;
+                background: Theme.border;
+            }
+
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 12px;
+                alignment: space-between;
+
+                ai_btn := Rectangle {
+                    height: 28px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 5px;
+                    background: ai_touch.has-hover ? Theme.surface_elevated : Colors.transparent;
+
+                    ai_touch := TouchArea {
+                        clicked => { root.open_ai(); }
+                    }
+
+                    HorizontalLayout {
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        spacing: 5px;
+
+                        Text {
+                            text: "✨";
+                            font-size: 12px;
+                            vertical-alignment: center;
+                        }
+                        Text {
+                            text: "AI Grouping";
+                            font-size: 11px;
+                            font-weight: 600;
+                            color: Theme.text_secondary;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                settings_btn := Rectangle {
+                    width: 28px;
+                    height: 28px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 5px;
+                    background: set_touch.has-hover ? Theme.surface_elevated : Colors.transparent;
+
+                    set_touch := TouchArea {
+                        clicked => { root.open_settings(); }
+                    }
+
+                    Text {
+                        text: "⚙";
+                        font-size: 13px;
+                        color: Theme.text_muted;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,167 @@
+import { Theme } from "theme.slint";
+export { Theme }
+import { QuickPasteWindow } from "quickpaste.slint";
+export { QuickPasteWindow }
+import { Sidebar, GroupItem } from "components/sidebar.slint";
+import { SnippetList, SnippetItem } from "components/snippet_list.slint";
+import { DetailView, RelatedItem } from "components/detail_view.slint";
+import { ResizeHandle } from "components/resize_handle.slint";
+import { SettingsModal } from "components/settings_modal.slint";
+import { AIModal, AIGroupPreview } from "components/ai_modal.slint";
+
+export component MainWindow inherits Window {
+    title: "SnippetAI";
+    default-font-family: Theme.font_family;
+    preferred-width: 1000px;
+    preferred-height: 700px;
+    min-width: 750px;
+    min-height: 500px;
+    background: Theme.background;
+
+    // Resizable layout state
+    in-out property <length> sidebar_width: 240px;
+    in-out property <length> list_width: 320px;
+
+    // Data models
+    in property <[GroupItem]> groups: [];
+    in property <string> selected_group: "";
+    in property <int> all_count: 0;
+
+    in property <[SnippetItem]> snippets: [];
+    in property <string> selected_snippet_id: "";
+    in-out property <string> search_query: "";
+
+    // Detail view state
+    in-out property <string> detail_title: "";
+    in-out property <string> detail_group: "";
+    in-out property <string> detail_content: "";
+    in-out property <string> detail_language: "";
+    in property <bool> is_copied: false;
+    in property <[RelatedItem]> related_snippets: [];
+
+    // Modals state
+    in-out property <bool> is_settings_open: false;
+    in-out property <bool> is_ai_open: false;
+    in property <bool> is_ai_loading: false;
+    in property <string> ai_error: "";
+    in property <[AIGroupPreview]> ai_suggestions: [];
+
+    // Settings fields
+    in-out property <int> setting_theme: 0;
+    in-out property <string> setting_provider: "deepseek";
+    in-out property <string> setting_api_key: "";
+    in-out property <string> setting_model_override: "";
+    in-out property <string> setting_hotkey: "Ctrl+Shift+Space";
+
+    // Callbacks to Rust
+    callback select_group(string);
+    callback select_snippet(string);
+    callback add_snippet();
+    callback save_snippet(string, string, string, string); // title, group, content, language
+    callback copy_snippet();
+    callback delete_snippet();
+    callback search_edited(string);
+    callback save_settings(int, string, string, string, string);
+    callback run_ai_grouping();
+    callback apply_ai_groups();
+    callback persist_widths(int, int);
+
+    // Background wallpaper for Persona 5 & Cyberpunk themes
+    if Theme.has_bg_image: Image {
+        width: 100%;
+        height: 100%;
+        source: Theme.active_bg_image;
+        image-fit: cover;
+        opacity: 0.18;
+    }
+
+    // Main 3-column layout
+    HorizontalLayout {
+        // 1. Sidebar
+        Sidebar {
+            width: root.sidebar_width;
+            groups: root.groups;
+            selected_group: root.selected_group;
+            all_count: root.all_count;
+            select_group(g) => { root.select_group(g); }
+        }
+
+        // Divider 1
+        ResizeHandle {
+            moved(delta) => {
+                root.sidebar_width = Math.max(160px, Math.min(450px, root.sidebar_width + delta));
+                root.persist_widths(root.sidebar_width / 1px, root.list_width / 1px);
+            }
+            double_clicked => {
+                root.sidebar_width = 240px;
+                root.persist_widths(240, root.list_width / 1px);
+            }
+        }
+
+        // 2. Snippet List
+        SnippetList {
+            width: root.list_width;
+            snippets: root.snippets;
+            selected_id: root.selected_snippet_id;
+            search_query <=> root.search_query;
+            select_snippet(id) => { root.select_snippet(id); }
+            add_snippet => { root.add_snippet(); }
+            open_ai => { root.is_ai_open = true; }
+            open_settings => { root.is_settings_open = true; }
+            search_edited(q) => { root.search_edited(q); }
+        }
+
+        // Divider 2
+        ResizeHandle {
+            moved(delta) => {
+                root.list_width = Math.max(220px, Math.min(600px, root.list_width + delta));
+                root.persist_widths(root.sidebar_width / 1px, root.list_width / 1px);
+            }
+            double_clicked => {
+                root.list_width = 320px;
+                root.persist_widths(root.sidebar_width / 1px, 320);
+            }
+        }
+
+        // 3. Detail View
+        DetailView {
+            horizontal-stretch: 1;
+            snippet_id: root.selected_snippet_id;
+            title <=> root.detail_title;
+            group <=> root.detail_group;
+            content <=> root.detail_content;
+            language <=> root.detail_language;
+            is_copied: root.is_copied;
+            related_snippets: root.related_snippets;
+            save(t, g, c, l) => { root.save_snippet(t, g, c, l); }
+            copy_snippet => { root.copy_snippet(); }
+            delete_snippet => { root.delete_snippet(); }
+            select_related(id) => { root.select_snippet(id); }
+        }
+    }
+
+    // Settings Modal Overlay
+    SettingsModal {
+        is_open: root.is_settings_open;
+        selected_theme <=> root.setting_theme;
+        provider <=> root.setting_provider;
+        api_key <=> root.setting_api_key;
+        model_override <=> root.setting_model_override;
+        hotkey <=> root.setting_hotkey;
+        close => { root.is_settings_open = false; }
+        save(th, pr, key, mo, hk) => {
+            root.save_settings(th, pr, key, mo, hk);
+        }
+    }
+
+    // AI Modal Overlay
+    AIModal {
+        is_open: root.is_ai_open;
+        is_loading: root.is_ai_loading;
+        error_msg: root.ai_error;
+        suggested_groups: root.ai_suggestions;
+        close => { root.is_ai_open = false; }
+        run_ai_grouping => { root.run_ai_grouping(); }
+        apply_groups => { root.apply_ai_groups(); }
+    }
+}

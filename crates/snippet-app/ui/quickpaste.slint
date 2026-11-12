@@ -1,0 +1,150 @@
+import { Theme } from "theme.slint";
+import { ScrollView, LineEdit } from "std-widgets.slint";
+import { SnippetItem } from "components/snippet_list.slint";
+
+export component QuickPasteWindow inherits Window {
+    title: "Quick Paste";
+    no-frame: true;
+    always-on-top: true;
+    preferred-width: 640px;
+    preferred-height: 420px;
+    background: Theme.surface;
+
+    in property <[SnippetItem]> snippets: [];
+    in-out property <int> active_index: 0;
+    in-out property <string> search_text: "";
+
+    callback choose_snippet(string); // id
+    callback close_window();
+    callback search_edited(string);
+
+    forward-focus: search_field;
+
+    Rectangle {
+        border-width: 1px;
+        border-color: Theme.border;
+        border-radius: 8px;
+        clip: true;
+
+        VerticalLayout {
+            // Search header
+            Rectangle {
+                height: 52px;
+
+                Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: Theme.border;
+                }
+
+                HorizontalLayout {
+                    padding-left: 14px;
+                    padding-right: 14px;
+
+                    search_field := LineEdit {
+                        text: root.search_text;
+                        placeholder-text: "Search snippets… (Enter to copy, Esc to close)";
+                        font-size: 14px;
+                        y: (parent.height - self.height) / 2;
+                        edited => {
+                            root.search_text = self.text;
+                            root.search_edited(self.text);
+                        }
+                        accepted => {
+                            if root.snippets.length > 0 && root.active_index >= 0 && root.active_index < root.snippets.length {
+                                root.choose_snippet(root.snippets[root.active_index].id);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Results list
+            ScrollView {
+                VerticalLayout {
+                    spacing: 0px;
+
+                    if root.snippets.length == 0: Rectangle {
+                        height: 120px;
+                        Text {
+                            text: "No snippets found";
+                            font-size: 13px;
+                            color: Theme.text_muted;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    for item[index] in root.snippets: Rectangle {
+                        height: 56px;
+                        background: root.active_index == index ?
+                            Theme.surface_elevated :
+                            (row_touch.has-hover ? Theme.surface_elevated.transparentize(50%) : Colors.transparent);
+
+                        Rectangle {
+                            y: parent.height - 1px;
+                            height: 1px;
+                            background: Theme.border_subtle;
+                        }
+
+                        row_touch := TouchArea {
+                            clicked => { root.choose_snippet(item.id); }
+                            pointer-event(event) => {
+                                if event.kind == PointerEventKind.move {
+                                    root.active_index = index;
+                                }
+                            }
+                        }
+
+                        HorizontalLayout {
+                            padding-left: 16px;
+                            padding-right: 16px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                spacing: 2px;
+                                horizontal-stretch: 1;
+                                y: (parent.height - self.height) / 2;
+
+                                Text {
+                                    text: item.title == "" ? "Untitled Snippet" : item.title;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    color: root.active_index == index ? Theme.accent : Theme.text_primary;
+                                    overflow: elide;
+                                }
+
+                                Text {
+                                    text: item.preview;
+                                    font-size: 11px;
+                                    color: Theme.text_muted;
+                                    overflow: elide;
+                                }
+                            }
+
+                            if item.group_name != "": Rectangle {
+                                height: 16px;
+                                border-radius: 3px;
+                                background: Theme.surface_elevated;
+                                y: (parent.height - self.height) / 2;
+
+                                HorizontalLayout {
+                                    padding-left: 5px;
+                                    padding-right: 5px;
+
+                                    Text {
+                                        text: item.group_name;
+                                        font-size: 9px;
+                                        font-weight: 700;
+                                        color: Theme.text_secondary;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

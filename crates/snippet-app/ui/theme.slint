@@ -1,0 +1,90 @@
+export global Theme {
+    in-out property <int> theme_id: 0; // 0: Zinc, 1: Hacker Red, 2: Ocean Blue, 3: Cyberpunk
+
+    // Background color
+    out property <color> background: 
+        theme_id == 1 ? #000000 :
+        theme_id == 2 ? #f8fafc :
+        theme_id == 3 ? #050505 :
+        #09090b;
+
+    // Surface / Sidebar / Cards
+    out property <color> surface:
+        theme_id == 1 ? #0a0a0a :
+        theme_id == 2 ? #f1f5f9 :
+        theme_id == 3 ? #121212 :
+        #18181b;
+
+    // Elevated surface (active card, inputs, modals)
+    out property <color> surface_elevated:
+        theme_id == 1 ? #1a1a1a :
+        theme_id == 2 ? #ffffff :
+        theme_id == 3 ? #222222 :
+        #27272a;
+
+    // Borders
+    out property <color> border:
+        theme_id == 1 ? #e60012 :
+        theme_id == 2 ? #e2e8f0 :
+        theme_id == 3 ? #ff003c :
+        #27272a;
+
+    // Subtle border
+    out property <color> border_subtle:
+        theme_id == 1 ? #330004 :
+        theme_id == 2 ? #f1f5f9 :
+        theme_id == 3 ? #440010 :
+        #1f1f23;
+
+    // Primary Text
+    out property <color> text_primary:
+        theme_id == 1 ? #ffffff :
+        theme_id == 2 ? #0f172a :
+        theme_id == 3 ? #fcee0a :
+        #fafafa;
+
+    // Secondary / Muted Text
+    out property <color> text_secondary:
+        theme_id == 1 ? #dfdfdf :
+        theme_id == 2 ? #334155 :
+        theme_id == 3 ? #00f0ff :
+        #a1a1aa;
+
+    out property <color> text_muted:
+        theme_id == 1 ? #8c8c8c :
+        theme_id == 2 ? #64748b :
+        theme_id == 3 ? #8f8f8f :
+        #71717a;
+
+    // Accent (Indigo / Crimson / Sky / Cyber Yellow)
+    out property <color> accent:
+        theme_id == 1 ? #e60012 :
+        theme_id == 2 ? #0284c7 :
+        theme_id == 3 ? #fcee0a :
+        #6366f1;
+
+    out property <color> accent_hover:
+        theme_id == 1 ? #ff1a2b :
+        theme_id == 2 ? #0ea5e9 :
+        theme_id == 3 ? #e0d309 :
+        #4f46e5;
+
+    // Danger / Delete
+    out property <color> danger: #ef4444;
+    out property <color> danger_hover: #dc2626;
+
+    // Success
+    out property <color> success: #22c55e;
+
+    // Fonts
+    out property <string> font_family:
+        theme_id == 1 ? "Teko, Inter, sans-serif" :
+        theme_id == 3 ? "Orbitron, Inter, sans-serif" :
+        "Inter, system-ui, sans-serif";
+
+    out property <image> bg_persona: @image-url("assets/bg-persona.png");
+    out property <image> bg_cyberpunk: @image-url("assets/bg-cyberpunk.png");
+
+    out property <bool> has_bg_image: theme_id == 1 || theme_id == 3;
+    out property <image> active_bg_image: theme_id == 1 ? bg_persona : bg_cyberpunk;
+}

@@ -1,0 +1,23 @@
+import { Theme } from "../theme.slint";
+
+export component ResizeHandle inherits Rectangle {
+    width: 3px;
+    background: touch.has-hover ? Theme.accent : Theme.border;
+
+    callback moved(length);
+    callback double_clicked();
+
+    touch := TouchArea {
+        mouse-cursor: col-resize;
+        width: 9px;
+        x: -3px;
+
+        moved => {
+            root.moved(self.mouse-x - self.pressed-x);
+        }
+
+        double-clicked => {
+            root.double_clicked();
+        }
+    }
+}

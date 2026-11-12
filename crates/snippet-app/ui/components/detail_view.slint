@@ -1,0 +1,205 @@
+import { Theme } from "../theme.slint";
+import { LineEdit, ScrollView, ComboBox, TextEdit } from "std-widgets.slint";
+
+export struct RelatedItem {
+    id: string,
+    title: string,
+}
+
+export component DetailView inherits Rectangle {
+    in property <string> snippet_id: "";
+    in-out property <string> title: "";
+    in-out property <string> group: "";
+    in-out property <string> content: "";
+    in-out property <string> language: "";
+    in property <[string]> languages: ["auto", "bash", "javascript", "typescript", "python", "json", "sql", "rust", "go", "html", "css", "yaml", "markdown"];
+    in property <bool> is_copied: false;
+    in property <[RelatedItem]> related_snippets: [];
+
+    callback save(string, string, string, string); // title, group, content, language
+    callback copy_snippet();
+    callback delete_snippet();
+    callback select_related(string); // id
+
+    background: Theme.background;
+
+    if root.snippet_id == "": Rectangle {
+        Text {
+            text: "Select a snippet to view or edit";
+            font-size: 14px;
+            color: Theme.text_muted;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    if root.snippet_id != "": VerticalLayout {
+        // Header
+        Rectangle {
+            height: 90px;
+
+            Rectangle {
+                y: parent.height - 1px;
+                height: 1px;
+                background: Theme.border;
+            }
+
+            HorizontalLayout {
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-top: 14px;
+                padding-bottom: 14px;
+                alignment: space-between;
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 4px;
+
+                    title_input := LineEdit {
+                        text: root.title;
+                        placeholder-text: "Snippet Title";
+                        font-size: 18px;
+                        edited => {
+                            root.title = self.text;
+                            root.save(root.title, root.group, root.content, root.language);
+                        }
+                    }
+
+                    group_input := LineEdit {
+                        text: root.group;
+                        placeholder-text: "GROUP (E.G. DOCKER)";
+                        font-size: 11px;
+                        edited => {
+                            root.group = self.text;
+                            root.save(root.title, root.group, root.content, root.language);
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+
+                    // Language combo
+                    lang_box := ComboBox {
+                        model: root.languages;
+                        current-value: root.language == "" ? "auto" : root.language;
+                        width: 110px;
+                        y: (parent.height - self.height) / 2;
+                        selected => {
+                            root.language = self.current-value == "auto" ? "" : self.current-value;
+                            root.save(root.title, root.group, root.content, root.language);
+                        }
+                    }
+
+                    // Copy button
+                    copy_btn := Rectangle {
+                        width: 70px;
+                        height: 32px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 6px;
+                        background: root.is_copied ? Theme.success : (copy_touch.has-hover ? Theme.surface_elevated : Theme.surface);
+                        border-width: 1px;
+                        border-color: Theme.border;
+
+                        copy_touch := TouchArea {
+                            clicked => { root.copy_snippet(); }
+                        }
+
+                        Text {
+                            text: root.is_copied ? "✓ Copied" : "Copy";
+                            font-size: 11px;
+                            font-weight: 600;
+                            color: root.is_copied ? #ffffff : Theme.text_primary;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    // Delete button
+                    del_btn := Rectangle {
+                        width: 32px;
+                        height: 32px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 6px;
+                        background: del_touch.has-hover ? Theme.danger : Theme.surface;
+                        border-width: 1px;
+                        border-color: Theme.border;
+
+                        del_touch := TouchArea {
+                            clicked => { root.delete_snippet(); }
+                        }
+
+                        Text {
+                            text: "🗑";
+                            font-size: 12px;
+                            color: del_touch.has-hover ? #ffffff : Theme.danger;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Content Editor Area
+        editor_scroll := ScrollView {
+            VerticalLayout {
+                padding: 16px;
+                spacing: 16px;
+
+                // Code Editor
+                editor := TextEdit {
+                    text: root.content;
+                    font-size: 13px;
+                    font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                    min-height: 360px;
+                    edited => {
+                        root.content = self.text;
+                        root.save(root.title, root.group, root.content, root.language);
+                    }
+                }
+
+                // Related Snippets
+                if root.related_snippets.length > 0: VerticalLayout {
+                    spacing: 8px;
+
+                    Text {
+                        text: "RELATED SNIPPETS";
+                        font-size: 10px;
+                        font-weight: 700;
+                        color: Theme.text_muted;
+                        letter-spacing: 1px;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        for rel in root.related_snippets: Rectangle {
+                            height: 32px;
+                            border-radius: 5px;
+                            background: rel_touch.has-hover ? Theme.surface_elevated : Theme.surface;
+                            border-width: 1px;
+                            border-color: Theme.border;
+
+                            rel_touch := TouchArea {
+                                clicked => { root.select_related(rel.id); }
+                            }
+
+                            HorizontalLayout {
+                                padding-left: 10px;
+                                padding-right: 10px;
+
+                                Text {
+                                    text: rel.title;
+                                    font-size: 11px;
+                                    color: Theme.text_secondary;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
