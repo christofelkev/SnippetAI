@@ -1,5 +1,5 @@
 import { Theme } from "theme.slint";
-import { ScrollView, LineEdit } from "std-widgets.slint";
+import { ScrollView, LineEdit, Palette } from "std-widgets.slint";
 import { SnippetItem } from "components/snippet_list.slint";
 
 export component QuickPasteWindow inherits Window {
@@ -9,6 +9,14 @@ export component QuickPasteWindow inherits Window {
     preferred-width: 640px;
     preferred-height: 420px;
     background: Theme.surface;
+
+    in-out property <int> current_theme: Theme.theme_id;
+    init => {
+        Palette.color-scheme = Theme.theme_id == 2 ? ColorScheme.light : ColorScheme.dark;
+    }
+    changed current_theme => {
+        Palette.color-scheme = root.current_theme == 2 ? ColorScheme.light : ColorScheme.dark;
+    }
 
     in property <[SnippetItem]> snippets: [];
     in-out property <int> active_index: 0;

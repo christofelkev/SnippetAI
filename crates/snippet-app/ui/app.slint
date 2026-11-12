@@ -1,5 +1,6 @@
 import { Theme } from "theme.slint";
 export { Theme }
+import { Palette } from "std-widgets.slint";
 import { QuickPasteWindow } from "quickpaste.slint";
 export { QuickPasteWindow }
 import { Sidebar, GroupItem } from "components/sidebar.slint";
@@ -18,6 +19,14 @@ export component MainWindow inherits Window {
     min-width: 800px;
     min-height: 520px;
     background: Theme.background;
+
+    in-out property <int> current_theme: Theme.theme_id;
+    init => {
+        Palette.color-scheme = Theme.theme_id == 2 ? ColorScheme.light : ColorScheme.dark;
+    }
+    changed current_theme => {
+        Palette.color-scheme = root.current_theme == 2 ? ColorScheme.light : ColorScheme.dark;
+    }
 
     // Resizable layout state
     in-out property <length> sidebar_width: 240px;

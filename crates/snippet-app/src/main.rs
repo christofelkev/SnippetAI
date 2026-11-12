@@ -80,6 +80,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let current_theme_id = theme_str_to_id(&current_theme_str);
     main_window.global::<Theme>().set_theme_id(current_theme_id);
     quickpaste_window.global::<Theme>().set_theme_id(current_theme_id);
+    main_window.set_current_theme(current_theme_id);
+    quickpaste_window.set_current_theme(current_theme_id);
     main_window.set_setting_theme(current_theme_id);
 
     if let Ok(Some(prov)) = db.get_setting("ai_provider") {
@@ -276,9 +278,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             if let Some(mw) = mw_weak.upgrade() {
                 mw.global::<Theme>().set_theme_id(theme_id);
+                mw.set_current_theme(theme_id);
             }
             if let Some(qp) = qp_weak.upgrade() {
                 qp.global::<Theme>().set_theme_id(theme_id);
+                qp.set_current_theme(theme_id);
             }
         });
     }
