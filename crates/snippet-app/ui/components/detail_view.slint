@@ -6,11 +6,10 @@ export struct RelatedItem {
     title: string,
 }
 
-export struct BlockItem {
-    is_image: bool,
-    text_content: string,
+export struct ImageItem {
     image_source: image,
     image_alt: string,
+    index: int,
 }
 
 export component DetailView inherits Rectangle {
@@ -22,14 +21,17 @@ export component DetailView inherits Rectangle {
     in property <[string]> languages: ["auto", "bash", "javascript", "typescript", "python", "json", "sql", "rust", "go", "html", "css", "yaml", "markdown"];
     in property <bool> is_copied: false;
     in property <[RelatedItem]> related_snippets: [];
-    in property <[BlockItem]> blocks: [];
+
+    in property <bool> has_images: false;
+    in property <[ImageItem]> images: [];
+    in-out property <string> text_body: "";
 
     callback save(string, string, string, string); // title, group, content, language
     callback copy_snippet();
     callback delete_snippet();
     callback select_related(string); // id
-    callback update_text_block(int, string);
-    callback delete_image_block(int);
+    callback delete_image(int);
+    callback text_body_edited(string);
 
     background: Theme.background;
 
@@ -44,9 +46,9 @@ export component DetailView inherits Rectangle {
     }
 
     if root.snippet_id != "": VerticalLayout {
-        // Header
+        // Top Header
         Rectangle {
-            height: 90px;
+            height: 84px;
 
             Rectangle {
                 y: parent.height - 1px;
@@ -55,13 +57,13 @@ export component DetailView inherits Rectangle {
             }
 
             HorizontalLayout {
-                padding-left: 20px;
-                padding-right: 20px;
+                padding-left: 24px;
+                padding-right: 24px;
                 padding-top: 14px;
                 padding-bottom: 14px;
                 alignment: space-between;
 
-                // Title and Group inputs (borderless, transparent)
+                // Title and Group inputs (borderless, transparent, seamless heading style)
                 VerticalLayout {
                     horizontal-stretch: 1;
                     spacing: 4px;
@@ -70,61 +72,70 @@ export component DetailView inherits Rectangle {
                     Rectangle {
                         height: 32px;
 
-                        if root.title == "": Text {
-                            text: "Snippet Title";
-                            font-size: 22px;
-                            font-weight: 700;
-                            color: Theme.text_muted.transparentize(50%);
-                            vertical-alignment: center;
+                        HorizontalLayout {
+                            if root.title == "": Text {
+                                text: "Snippet Title";
+                                font-size: 22px;
+                                font-weight: 700;
+                                color: Theme.text_muted.transparentize(50%);
+                                vertical-alignment: center;
+                            }
                         }
 
-                        title_input := TextInput {
-                            text: root.title;
-                            font-size: 22px;
-                            font-weight: 700;
-                            color: Theme.text_primary;
-                            single-line: true;
-                            vertical-alignment: center;
-                            edited => {
-                                root.title = self.text;
-                                root.save(root.title, root.group, root.content, root.language);
+                        HorizontalLayout {
+                            title_input := TextInput {
+                                text: root.title;
+                                font-size: 22px;
+                                font-weight: 700;
+                                color: Theme.text_primary;
+                                single-line: true;
+                                vertical-alignment: center;
+                                edited => {
+                                    root.title = self.text;
+                                    root.save(root.title, root.group, root.content, root.language);
+                                }
                             }
                         }
                     }
 
-                    // Group
+                    // Group Subtitle
                     Rectangle {
-                        height: 20px;
+                        height: 18px;
 
-                        if root.group == "": Text {
-                            text: "GROUP (E.G. DOCKER)";
-                            font-size: 11px;
-                            font-weight: 600;
-                            letter-spacing: 1px;
-                            color: Theme.text_muted.transparentize(50%);
-                            vertical-alignment: center;
+                        HorizontalLayout {
+                            if root.group == "": Text {
+                                text: "GROUP (E.G. DOCKER)";
+                                font-size: 11px;
+                                font-weight: 600;
+                                letter-spacing: 1px;
+                                color: Theme.text_muted.transparentize(50%);
+                                vertical-alignment: center;
+                            }
                         }
 
-                        group_input := TextInput {
-                            text: root.group;
-                            font-size: 11px;
-                            font-weight: 600;
-                            letter-spacing: 1px;
-                            color: Theme.text_muted;
-                            single-line: true;
-                            vertical-alignment: center;
-                            edited => {
-                                root.group = self.text;
-                                root.save(root.title, root.group, root.content, root.language);
+                        HorizontalLayout {
+                            group_input := TextInput {
+                                text: root.group;
+                                font-size: 11px;
+                                font-weight: 600;
+                                letter-spacing: 1px;
+                                color: Theme.text_muted;
+                                single-line: true;
+                                vertical-alignment: center;
+                                edited => {
+                                    root.group = self.text;
+                                    root.save(root.title, root.group, root.content, root.language);
+                                }
                             }
                         }
                     }
                 }
 
+                // Action controls
                 HorizontalLayout {
                     spacing: 8px;
 
-                    // Custom Language Selector
+                    // Custom Sleek Language Selector
                     lang_btn := Rectangle {
                         height: 32px;
                         min-width: 95px;
@@ -257,18 +268,30 @@ export component DetailView inherits Rectangle {
             }
         }
 
-        // Content Editor Area
-        editor_scroll := ScrollView {
+        // Editor Body
+        ScrollView {
             VerticalLayout {
-                padding: 16px;
-                spacing: 14px;
+                padding: 20px;
+                spacing: 16px;
 
-                // Dynamic blocks: Code editors and Inline Images
-                for block[index] in root.blocks: VerticalLayout {
-                    spacing: 8px;
+                // Case 1: Pure Code / Text Snippet (Single seamless editor!)
+                if !root.has_images: TextEdit {
+                    text: root.content;
+                    font-size: 13px;
+                    font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                    min-height: 440px;
+                    edited => {
+                        root.content = self.text;
+                        root.save(root.title, root.group, root.content, root.language);
+                    }
+                }
 
-                    // Image Block
-                    if block.is_image: Rectangle {
+                // Case 2: Snippet with Images
+                if root.has_images: VerticalLayout {
+                    spacing: 14px;
+
+                    // Display all images cleanly in rounded cards
+                    for img in root.images: Rectangle {
                         background: Theme.surface;
                         border-radius: 8px;
                         border-width: 1px;
@@ -276,27 +299,27 @@ export component DetailView inherits Rectangle {
                         clip: true;
 
                         VerticalLayout {
-                            padding: 8px;
-                            spacing: 6px;
+                            padding: 10px;
+                            spacing: 8px;
 
                             HorizontalLayout {
                                 alignment: space-between;
 
                                 Text {
-                                    text: "🖼 " + (block.image_alt == "" ? "Image" : block.image_alt);
+                                    text: "🖼 " + (img.image_alt == "" ? "Attached Image" : img.image_alt);
                                     font-size: 11px;
                                     color: Theme.text_muted;
                                     vertical-alignment: center;
                                 }
 
-                                Rectangle {
+                                del_img_btn := Rectangle {
                                     width: 22px;
                                     height: 22px;
                                     border-radius: 4px;
                                     background: del_img_touch.has-hover ? Theme.danger : Theme.surface_elevated;
 
                                     del_img_touch := TouchArea {
-                                        clicked => { root.delete_image_block(index); }
+                                        clicked => { root.delete_image(img.index); }
                                     }
 
                                     Text {
@@ -310,26 +333,39 @@ export component DetailView inherits Rectangle {
                             }
 
                             Image {
-                                source: block.image_source;
+                                source: img.image_source;
                                 image-fit: contain;
-                                max-height: 380px;
+                                max-height: 420px;
                             }
                         }
                     }
 
-                    // Text / Code Block
-                    if !block.is_image: TextEdit {
-                        text: block.text_content;
-                        font-size: 13px;
-                        font-family: "Cascadia Code, Fira Code, Consolas, monospace";
-                        min-height: (root.blocks.length == 1 ? 380px : 80px);
-                        edited => {
-                            root.update_text_block(index, self.text);
+                    // Accompanying notes/code editor below images
+                    VerticalLayout {
+                        spacing: 6px;
+
+                        Text {
+                            text: "NOTES / CODE";
+                            font-size: 10px;
+                            font-weight: 700;
+                            letter-spacing: 1px;
+                            color: Theme.text_muted;
+                        }
+
+                        TextEdit {
+                            text: root.text_body;
+                            font-size: 13px;
+                            font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                            min-height: 120px;
+                            edited => {
+                                root.text_body = self.text;
+                                root.text_body_edited(self.text);
+                            }
                         }
                     }
                 }
 
-                // Related Snippets
+                // Related Snippets Section
                 if root.related_snippets.length > 0: VerticalLayout {
                     spacing: 8px;
 

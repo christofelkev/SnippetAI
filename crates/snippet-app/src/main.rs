@@ -60,15 +60,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 4. Load persisted preferences
     if let Ok(Some(sidebar_w_str)) = db.get_setting("snippetai_sidebar_width") {
         if let Ok(w) = sidebar_w_str.parse::<f32>() {
-            let clamped = w.clamp(160.0, 450.0);
+            let clamped = w.clamp(160.0, 350.0);
             main_window.set_sidebar_width(clamped);
         }
+    } else {
+        main_window.set_sidebar_width(240.0);
     }
+
     if let Ok(Some(list_w_str)) = db.get_setting("snippetai_list_width") {
         if let Ok(w) = list_w_str.parse::<f32>() {
-            let clamped = w.clamp(220.0, 450.0);
+            let clamped = w.clamp(220.0, 360.0);
             main_window.set_list_width(clamped);
         }
+    } else {
+        main_window.set_list_width(320.0);
     }
 
     let current_theme_str = db.get_setting("app_theme").unwrap_or_default().unwrap_or_else(|| "theme-default".to_string());
@@ -151,7 +156,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Some(lang.as_str()),
                     );
                     state.reload_snippets();
-                    state.update_ui(&mw);
+
+                    // Update left list titles/previews smoothly without touching active DetailView
+                    let snippets = state.all_snippets.lock().unwrap().clone();
+                    let selected_group = state.selected_group.lock().unwrap().clone();
+                    let search_query = state.search_query.lock().unwrap().to_lowercase();
+                    let filtered: Vec<SnippetItem> = snippets
+                        .iter()
+                        .filter(|s| {
+                            if !selected_group.is_empty() && s.group_name != selected_group {
+                                return false;
+                            }
+                            if !search_query.is_empty() {
+                                let matches_title = s.title.to_lowercase().contains(&search_query);
+                                let matches_content = s.content.to_lowercase().contains(&search_query);
+                                let matches_group = s.group_name.to_lowercase().contains(&search_query);
+                                return matches_title || matches_content || matches_group;
+                            }
+                            true
+                        })
+                        .map(|s| {
+                            let clean_preview = snippet_core::content::strip_image_markdown(&s.content);
+                            let first_line = clean_preview.lines().next().unwrap_or("").to_string();
+                            SnippetItem {
+                                id: SharedString::from(&s.id),
+                                title: SharedString::from(&s.title),
+                                preview: SharedString::from(first_line),
+                                group_name: SharedString::from(&s.group_name),
+                                language: SharedString::from(&s.language),
+                            }
+                        })
+                        .collect();
+                    mw.set_snippets(ModelRc::new(VecModel::from(filtered)));
                 }
             }
         });
@@ -160,83 +196,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let state = state.clone();
         let mw_weak = main_window.as_weak();
-        main_window.on_delete_snippet(move || {
-            if let Some(mw) = mw_weak.upgrade() {
-                let selected_id = state.selected_id.lock().unwrap().clone();
-                if !selected_id.is_empty() {
-                    let _ = state.db.delete_snippet(&selected_id);
-                    state.reload_snippets();
-                    let all = state.all_snippets.lock().unwrap();
-                    *state.selected_id.lock().unwrap() = all.first().map(|s| s.id.clone()).unwrap_or_default();
-                    drop(all);
-                    state.update_ui(&mw);
-                }
-            }
-        });
-    }
-
-    {
-        let mw_weak = main_window.as_weak();
-        main_window.on_copy_snippet(move || {
-            if let Some(mw) = mw_weak.upgrade() {
-                let content = mw.get_detail_content().to_string();
-                let _ = copy_clean_code(&content);
-                mw.set_is_copied(true);
-                let weak_timer = mw.as_weak();
-                slint::Timer::single_shot(std::time::Duration::from_secs(2), move || {
-                    if let Some(w) = weak_timer.upgrade() {
-                        w.set_is_copied(false);
-                    }
-                });
-            }
-        });
-    }
-
-    {
-        let state = state.clone();
-        let mw_weak = main_window.as_weak();
-        main_window.on_search_edited(move |q| {
-            if let Some(mw) = mw_weak.upgrade() {
-                *state.search_query.lock().unwrap() = q.to_string();
-                state.update_ui(&mw);
-            }
-        });
-    }
-
-    {
-        let state = state.clone();
-        let mw_weak = main_window.as_weak();
-        main_window.on_update_block_text(move |idx, new_text| {
-            if let Some(_mw) = mw_weak.upgrade() {
-                let selected_id = state.selected_id.lock().unwrap().clone();
-                if !selected_id.is_empty() {
-                    let all = state.all_snippets.lock().unwrap();
-                    if let Some(active) = all.iter().find(|s| s.id == selected_id) {
-                        let mut blocks = snippet_core::content::parse_content(&active.content);
-                        let i = idx as usize;
-                        if i < blocks.len() {
-                            blocks[i] = snippet_core::content::ContentBlock::Text(new_text.to_string());
-                            let new_content = snippet_core::content::blocks_to_string(&blocks);
-                            drop(all);
-                            let _ = state.db.update_snippet(
-                                &selected_id,
-                                None,
-                                Some(&new_content),
-                                None,
-                                None,
-                            );
-                            state.reload_snippets();
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    {
-        let state = state.clone();
-        let mw_weak = main_window.as_weak();
-        main_window.on_delete_block_image(move |idx| {
+        main_window.on_delete_detail_image(move |idx| {
             if let Some(mw) = mw_weak.upgrade() {
                 let selected_id = state.selected_id.lock().unwrap().clone();
                 if !selected_id.is_empty() {
@@ -258,6 +218,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             state.reload_snippets();
                             state.update_ui(&mw);
                         }
+                    }
+                }
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let mw_weak = main_window.as_weak();
+        main_window.on_edit_detail_text_body(move |new_body| {
+            if let Some(mw) = mw_weak.upgrade() {
+                let selected_id = state.selected_id.lock().unwrap().clone();
+                if !selected_id.is_empty() {
+                    let all = state.all_snippets.lock().unwrap();
+                    if let Some(active) = all.iter().find(|s| s.id == selected_id) {
+                        let blocks = snippet_core::content::parse_content(&active.content);
+                        let mut image_markdowns = Vec::new();
+                        for b in &blocks {
+                            if let snippet_core::models::ContentBlock::Image { alt, url } = b {
+                                image_markdowns.push(format!("![{}]({})", alt, url));
+                            }
+                        }
+                        let mut combined = image_markdowns.join("\n\n");
+                        if !new_body.trim().is_empty() {
+                            if !combined.is_empty() {
+                                combined.push_str("\n\n");
+                            }
+                            combined.push_str(new_body.as_str());
+                        }
+                        drop(all);
+                        let _ = state.db.update_snippet(
+                            &selected_id,
+                            None,
+                            Some(&combined),
+                            None,
+                            None,
+                        );
+                        state.reload_snippets();
+                        mw.set_detail_content(SharedString::from(combined));
                     }
                 }
             }

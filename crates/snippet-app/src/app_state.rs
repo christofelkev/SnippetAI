@@ -6,7 +6,7 @@ use snippet_core::content::{parse_content, strip_image_markdown, ContentBlock};
 use snippet_core::storage::{get_app_dir, resolve_image_path};
 use snippet_core::related::find_related_snippets;
 use snippet_core::ai::AIGroup;
-use crate::{MainWindow, GroupItem, SnippetItem, RelatedItem, BlockItem, QuickPasteWindow};
+use crate::{MainWindow, GroupItem, SnippetItem, RelatedItem, ImageItem, QuickPasteWindow};
 
 pub struct AppState {
     pub db: Arc<Database>,
@@ -111,17 +111,16 @@ impl AppState {
             // Parse blocks (text and inline images)
             let blocks = parse_content(&active.content);
             let app_dir = get_app_dir();
-            let mut block_items = Vec::new();
+            let mut image_items = Vec::new();
+            let mut text_parts = Vec::new();
 
-            for b in &blocks {
+            for (i, b) in blocks.iter().enumerate() {
                 match b {
                     ContentBlock::Text(t) => {
-                        block_items.push(BlockItem {
-                            is_image: false,
-                            text_content: SharedString::from(t),
-                            image_source: slint::Image::default(),
-                            image_alt: SharedString::default(),
-                        });
+                        let trimmed = t.trim();
+                        if !trimmed.is_empty() {
+                            text_parts.push(t.as_str());
+                        }
                     }
                     ContentBlock::Image { alt, url } => {
                         let img = if let Some(path) = resolve_image_path(url, &app_dir) {
@@ -129,17 +128,21 @@ impl AppState {
                         } else {
                             slint::Image::default()
                         };
-                        block_items.push(BlockItem {
-                            is_image: true,
-                            text_content: SharedString::from(url),
+                        image_items.push(ImageItem {
                             image_source: img,
                             image_alt: SharedString::from(alt),
+                            index: i as i32,
                         });
                     }
                 }
             }
 
-            window.set_detail_blocks(ModelRc::new(VecModel::from(block_items)));
+            let has_images = !image_items.is_empty();
+            let text_body = text_parts.join("\n\n");
+
+            window.set_detail_has_images(has_images);
+            window.set_detail_images(ModelRc::new(VecModel::from(image_items)));
+            window.set_detail_text_body(SharedString::from(text_body));
 
             // Related snippets
             let related = find_related_snippets(active, &snippets, 3);
@@ -156,7 +159,9 @@ impl AppState {
             window.set_detail_group(SharedString::default());
             window.set_detail_content(SharedString::default());
             window.set_detail_language(SharedString::default());
-            window.set_detail_blocks(ModelRc::new(VecModel::default()));
+            window.set_detail_has_images(false);
+            window.set_detail_images(ModelRc::new(VecModel::default()));
+            window.set_detail_text_body(SharedString::default());
             window.set_related_snippets(ModelRc::new(VecModel::default()));
         }
     }
