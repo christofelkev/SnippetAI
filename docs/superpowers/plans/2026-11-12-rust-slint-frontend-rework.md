@@ -31,16 +31,16 @@
 - Create: `crates/snippet-core/src/content.rs`
 - Create: `crates/snippet-core/src/content_test.rs`
 
-- [ ] **Step 1: Create Root `Cargo.toml` Workspace Manifest**
+- [x] **Step 1: Create Root `Cargo.toml` Workspace Manifest**
 Configure root Cargo workspace containing `crates/snippet-core` and `crates/snippet-app` (and keeping `src-tauri` separate or included).
 
-- [ ] **Step 2: Define Data Models in `crates/snippet-core/src/models.rs`**
+- [x] **Step 2: Define Data Models in `crates/snippet-core/src/models.rs`**
 Port `Snippet`, `Setting`, and `LANGUAGES` constants from TypeScript / `src-tauri/src/lib.rs`.
 
-- [ ] **Step 3: Port `stripImageMarkdown` & Markdown Image Scanner in `crates/snippet-core/src/content.rs`**
+- [x] **Step 3: Port `stripImageMarkdown` & Markdown Image Scanner in `crates/snippet-core/src/content.rs`**
 Port balanced-delimiter image parser and `stripImageMarkdown` from `src/lib/content.ts` to Rust with unit tests.
 
-- [ ] **Step 4: Run unit tests**
+- [x] **Step 4: Run unit tests**
 Run: `cargo test -p snippet-core`
 Expected: PASS.
 
@@ -53,16 +53,16 @@ Expected: PASS.
 - Create: `crates/snippet-core/src/storage.rs`
 - Create: `crates/snippet-core/src/db_test.rs`
 
-- [ ] **Step 1: Implement `storage.rs` with Safe DB Backup**
+- [x] **Step 1: Implement `storage.rs` with Safe DB Backup**
 Implement resolution of `%APPDATA%\com.snippets.app` via `dirs::data_dir()`. Implement `backup_db_if_exists()` which copies `snippets.db` to `snippets.db.backup_<timestamp>` before opening.
 
-- [ ] **Step 2: Implement SQLite Operations in `db.rs`**
+- [x] **Step 2: Implement SQLite Operations in `db.rs`**
 Port `init_db`, `get_snippets`, `add_snippet`, `update_snippet`, `delete_snippet`, `search_snippets`, `apply_groups`, `get_setting`, and `set_setting` with full transaction support.
 
-- [ ] **Step 3: Implement Image Disk Storage in `storage.rs`**
+- [x] **Step 3: Implement Image Disk Storage in `storage.rs`**
 Implement `save_image_to_disk(bytes)` and `read_image_from_disk(filename)` targeting `$APPDATA/images/`.
 
-- [ ] **Step 4: Unit Test SQLite & Backup Operations**
+- [x] **Step 4: Unit Test SQLite & Backup Operations**
 Write unit tests using in-memory or temporary SQLite databases.
 Run: `cargo test -p snippet-core`
 Expected: PASS.
@@ -75,13 +75,13 @@ Expected: PASS.
 - Create: `crates/snippet-core/src/ai.rs`
 - Create: `crates/snippet-core/src/related.rs`
 
-- [ ] **Step 1: Implement Token-Overlap Related Snippets Algorithm in `related.rs`**
+- [x] **Step 1: Implement Token-Overlap Related Snippets Algorithm in `related.rs`**
 Port the exact word-token intersection formula from `src/components/DetailView.tsx` into pure Rust.
 
-- [ ] **Step 2: Implement Async AI Service in `ai.rs`**
+- [x] **Step 2: Implement Async AI Service in `ai.rs`**
 Port `groupSnippets` and `generateMetadata` using `reqwest` for OpenAI, Anthropic, and DeepSeek endpoints.
 
-- [ ] **Step 3: Unit test token similarity**
+- [x] **Step 3: Unit test token similarity**
 Run: `cargo test -p snippet-core`
 Expected: PASS.
 
@@ -96,13 +96,13 @@ Expected: PASS.
 - Create: `crates/snippet-app/ui/app.slint`
 - Create: `crates/snippet-app/src/main.rs`
 
-- [ ] **Step 1: Configure `crates/snippet-app/Cargo.toml` & `build.rs`**
+- [x] **Step 1: Configure `crates/snippet-app/Cargo.toml` & `build.rs`**
 Add dependencies: `slint = "1.9"`, `snippet-core`, `tokio`, `arboard`, `syntect`, `dirs`. Set up `slint_build::compile("ui/app.slint")`.
 
-- [ ] **Step 2: Implement `theme.slint` with all 4 Themes**
+- [x] **Step 2: Implement `theme.slint` with all 4 Themes**
 Recreate Default Zinc, Persona 5 Royal (Hacker Red), Ocean Blue, and Cyberpunk 2077 styling, colors, and background images.
 
-- [ ] **Step 3: Smoke Test Slint App Window**
+- [x] **Step 3: Smoke Test Slint App Window**
 Create basic `app.slint` window and launch with `cargo run -p snippet-app`.
 Expected: Window opens smoothly in <50ms with correct theme background.
 
@@ -116,13 +116,13 @@ Expected: Window opens smoothly in <50ms with correct theme background.
 - Modify: `crates/snippet-app/ui/app.slint`
 - Create: `crates/snippet-app/src/app_state.rs`
 
-- [ ] **Step 1: Implement `resize_handle.slint`**
+- [x] **Step 1: Implement `resize_handle.slint`**
 Create a divider bar component with hover color, drag cursor (`col-resize`), mouse drag tracking, and double-click reset to default width.
 
-- [ ] **Step 2: Implement `sidebar.slint`**
+- [x] **Step 2: Implement `sidebar.slint`**
 Create group list with "All Snippets" count, per-group count badge, group selection, and add group button.
 
-- [ ] **Step 3: Connect Sidebar to `app_state.rs`**
+- [x] **Step 3: Connect Sidebar to `app_state.rs`**
 Wire group selection and column width persistence into `snippet-core` settings.
 
 ---
@@ -133,13 +133,13 @@ Wire group selection and column width persistence into `snippet-core` settings.
 - Create: `crates/snippet-app/ui/components/snippet_list.slint`
 - Modify: `crates/snippet-app/ui/app.slint`
 
-- [ ] **Step 1: Implement Snippet Card in `snippet_list.slint`**
+- [x] **Step 1: Implement Snippet Card in `snippet_list.slint`**
 Render snippet cards showing title, stripped preview text, language badge, and date.
 
-- [ ] **Step 2: Implement Search Input with `Ctrl+K` Hotkey**
+- [x] **Step 2: Implement Search Input with `Ctrl+K` Hotkey**
 Filter snippet list in real-time by search query and selected group.
 
-- [ ] **Step 3: Add Action Bar**
+- [x] **Step 3: Add Action Bar**
 Include Add Snippet button (`Ctrl+N`), AI Grouping button, and Settings button in footer.
 
 ---
@@ -151,16 +151,16 @@ Include Add Snippet button (`Ctrl+N`), AI Grouping button, and Settings button i
 - Create: `crates/snippet-app/ui/components/content_editor.slint`
 - Create: `crates/snippet-app/src/highlight.rs`
 
-- [ ] **Step 1: Implement Syntax Highlighting in `src/highlight.rs`**
+- [x] **Step 1: Implement Syntax Highlighting in `src/highlight.rs`**
 Integrate `syntect` to tokenize and color code blocks matching `github-dark` theme.
 
-- [ ] **Step 2: Implement Content Editor with Inline Images**
+- [x] **Step 2: Implement Content Editor with Inline Images**
 Render alternating text blocks and disk images from `$APPDATA/images/`. Allow clicking text blocks to edit.
 
-- [ ] **Step 3: Implement Copy & Delete Actions**
+- [x] **Step 3: Implement Copy & Delete Actions**
 Wire copy button to `arboard` (stripping image markdown before clipboard write) with 2-second checkmark animation. Add delete confirmation modal.
 
-- [ ] **Step 4: Related Snippets List**
+- [x] **Step 4: Related Snippets List**
 Display top 3 related snippets and handle click-to-select.
 
 ---
@@ -172,13 +172,13 @@ Display top 3 related snippets and handle click-to-select.
 - Create: `crates/snippet-app/src/hotkey.rs`
 - Create: `crates/snippet-app/src/clipboard.rs`
 
-- [ ] **Step 1: Implement `quickpaste.slint`**
+- [x] **Step 1: Implement `quickpaste.slint`**
 Design frameless, always-on-top window (640x420) with search bar, keyboard navigation (Up/Down/Enter/Esc), and auto-hide on blur.
 
-- [ ] **Step 2: Register Global Hotkey**
+- [x] **Step 2: Register Global Hotkey**
 Integrate `global-hotkey` crate for `Ctrl+Shift+Space` (or stored preference from settings).
 
-- [ ] **Step 3: Connect Clipboard Action**
+- [x] **Step 3: Connect Clipboard Action**
 On Enter press, write clean code to clipboard via `arboard` and hide popup window.
 
 ---
@@ -189,10 +189,10 @@ On Enter press, write clean code to clipboard via `arboard` and hide popup windo
 - Create: `crates/snippet-app/src/tray.rs`
 - Modify: `crates/snippet-app/src/main.rs`
 
-- [ ] **Step 1: Implement Single Instance Lock**
+- [x] **Step 1: Implement Single Instance Lock**
 Use a named Windows mutex to detect if an instance is already running. If so, signal and raise existing window.
 
-- [ ] **Step 2: Implement System Tray Icon**
+- [x] **Step 2: Implement System Tray Icon**
 Add tray icon with menu items: "Open SnippetAI", "Quick Paste", "Quit". Intercept window close event to hide to tray.
 
 ---
@@ -203,10 +203,10 @@ Add tray icon with menu items: "Open SnippetAI", "Quick Paste", "Quit". Intercep
 - Create: `crates/snippet-app/ui/components/settings_modal.slint`
 - Create: `crates/snippet-app/ui/components/ai_modal.slint`
 
-- [ ] **Step 1: Implement Settings Modal**
+- [x] **Step 1: Implement Settings Modal**
 Theme selector (Default Zinc, Hacker Red, Ocean Blue, Cyberpunk 2077), AI Provider & API Key input, global hotkey rebind.
 
-- [ ] **Step 2: Implement AI Grouping Modal**
+- [x] **Step 2: Implement AI Grouping Modal**
 Trigger `snippet_core::ai::group_snippets`, display category preview diff, and execute `apply_groups` transaction upon confirmation.
 
 ---
