@@ -1,0 +1,13 @@
+[package]
+name = "snippet-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rusqlite = { version = "0.40.1", features = ["bundled"] }
+uuid = { version = "1.23.3", features = ["v4"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "5"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
