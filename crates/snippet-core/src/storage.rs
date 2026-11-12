@@ -37,6 +37,37 @@ pub fn read_image_from_disk(filename: &str, app_dir: &Path) -> Result<Vec<u8>, s
     std::fs::read(&file_path)
 }
 
+pub fn resolve_image_path(url: &str, app_dir: &Path) -> Option<PathBuf> {
+    let direct_path = PathBuf::from(url);
+    if direct_path.exists() && direct_path.is_file() {
+        return Some(direct_path);
+    }
+
+    let decoded = url
+        .replace("%5C", "\\")
+        .replace("%2F", "/")
+        .replace("%3A", ":")
+        .replace("%20", " ");
+
+    let decoded_path = PathBuf::from(&decoded);
+    if decoded_path.exists() && decoded_path.is_file() {
+        return Some(decoded_path);
+    }
+
+    if let Some(filename) = decoded
+        .split(&['/', '\\'][..])
+        .filter(|s| s.ends_with(".png") || s.ends_with(".jpg") || s.ends_with(".jpeg"))
+        .last()
+    {
+        let in_images = app_dir.join("images").join(filename);
+        if in_images.exists() {
+            return Some(in_images);
+        }
+    }
+
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -77,6 +108,12 @@ mod tests {
         let filename = path.file_name().unwrap().to_str().unwrap();
         let read_bytes = read_image_from_disk(filename, &temp).unwrap();
         assert_eq!(read_bytes, test_bytes);
+
+        // Test resolve_image_path with Tauri's URL format
+        let tauri_url = format!("http://asset.localhost/C%3A%5CUsers%5Ctest%5Cimages%5C{}", filename);
+        let resolved = resolve_image_path(&tauri_url, &temp);
+        assert_eq!(resolved, Some(path));
+
         let _ = std::fs::remove_dir_all(&temp);
     }
 }

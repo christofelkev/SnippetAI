@@ -2,10 +2,11 @@ use std::sync::{Arc, Mutex};
 use slint::{ModelRc, SharedString, VecModel};
 use snippet_core::db::Database;
 use snippet_core::models::Snippet;
-use snippet_core::content::strip_image_markdown;
+use snippet_core::content::{parse_content, strip_image_markdown, ContentBlock};
+use snippet_core::storage::{get_app_dir, resolve_image_path};
 use snippet_core::related::find_related_snippets;
 use snippet_core::ai::AIGroup;
-use crate::{MainWindow, GroupItem, SnippetItem, RelatedItem, QuickPasteWindow};
+use crate::{MainWindow, GroupItem, SnippetItem, RelatedItem, BlockItem, QuickPasteWindow};
 
 pub struct AppState {
     pub db: Arc<Database>,
@@ -107,6 +108,39 @@ impl AppState {
             window.set_detail_content(SharedString::from(&active.content));
             window.set_detail_language(SharedString::from(&active.language));
 
+            // Parse blocks (text and inline images)
+            let blocks = parse_content(&active.content);
+            let app_dir = get_app_dir();
+            let mut block_items = Vec::new();
+
+            for b in &blocks {
+                match b {
+                    ContentBlock::Text(t) => {
+                        block_items.push(BlockItem {
+                            is_image: false,
+                            text_content: SharedString::from(t),
+                            image_source: slint::Image::default(),
+                            image_alt: SharedString::default(),
+                        });
+                    }
+                    ContentBlock::Image { alt, url } => {
+                        let img = if let Some(path) = resolve_image_path(url, &app_dir) {
+                            slint::Image::load_from_path(&path).unwrap_or_default()
+                        } else {
+                            slint::Image::default()
+                        };
+                        block_items.push(BlockItem {
+                            is_image: true,
+                            text_content: SharedString::from(url),
+                            image_source: img,
+                            image_alt: SharedString::from(alt),
+                        });
+                    }
+                }
+            }
+
+            window.set_detail_blocks(ModelRc::new(VecModel::from(block_items)));
+
             // Related snippets
             let related = find_related_snippets(active, &snippets, 3);
             let related_items: Vec<RelatedItem> = related
@@ -122,6 +156,7 @@ impl AppState {
             window.set_detail_group(SharedString::default());
             window.set_detail_content(SharedString::default());
             window.set_detail_language(SharedString::default());
+            window.set_detail_blocks(ModelRc::new(VecModel::default()));
             window.set_related_snippets(ModelRc::new(VecModel::default()));
         }
     }

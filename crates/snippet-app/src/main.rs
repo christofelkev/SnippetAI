@@ -60,12 +60,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 4. Load persisted preferences
     if let Ok(Some(sidebar_w_str)) = db.get_setting("snippetai_sidebar_width") {
         if let Ok(w) = sidebar_w_str.parse::<f32>() {
-            main_window.set_sidebar_width(w);
+            let clamped = w.clamp(160.0, 450.0);
+            main_window.set_sidebar_width(clamped);
         }
     }
     if let Ok(Some(list_w_str)) = db.get_setting("snippetai_list_width") {
         if let Ok(w) = list_w_str.parse::<f32>() {
-            main_window.set_list_width(w);
+            let clamped = w.clamp(220.0, 450.0);
+            main_window.set_list_width(clamped);
         }
     }
 
@@ -197,6 +199,67 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(mw) = mw_weak.upgrade() {
                 *state.search_query.lock().unwrap() = q.to_string();
                 state.update_ui(&mw);
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let mw_weak = main_window.as_weak();
+        main_window.on_update_block_text(move |idx, new_text| {
+            if let Some(_mw) = mw_weak.upgrade() {
+                let selected_id = state.selected_id.lock().unwrap().clone();
+                if !selected_id.is_empty() {
+                    let all = state.all_snippets.lock().unwrap();
+                    if let Some(active) = all.iter().find(|s| s.id == selected_id) {
+                        let mut blocks = snippet_core::content::parse_content(&active.content);
+                        let i = idx as usize;
+                        if i < blocks.len() {
+                            blocks[i] = snippet_core::content::ContentBlock::Text(new_text.to_string());
+                            let new_content = snippet_core::content::blocks_to_string(&blocks);
+                            drop(all);
+                            let _ = state.db.update_snippet(
+                                &selected_id,
+                                None,
+                                Some(&new_content),
+                                None,
+                                None,
+                            );
+                            state.reload_snippets();
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let mw_weak = main_window.as_weak();
+        main_window.on_delete_block_image(move |idx| {
+            if let Some(mw) = mw_weak.upgrade() {
+                let selected_id = state.selected_id.lock().unwrap().clone();
+                if !selected_id.is_empty() {
+                    let all = state.all_snippets.lock().unwrap();
+                    if let Some(active) = all.iter().find(|s| s.id == selected_id) {
+                        let mut blocks = snippet_core::content::parse_content(&active.content);
+                        let i = idx as usize;
+                        if i < blocks.len() {
+                            blocks.remove(i);
+                            let new_content = snippet_core::content::blocks_to_string(&blocks);
+                            drop(all);
+                            let _ = state.db.update_snippet(
+                                &selected_id,
+                                None,
+                                Some(&new_content),
+                                None,
+                                None,
+                            );
+                            state.reload_snippets();
+                            state.update_ui(&mw);
+                        }
+                    }
+                }
             }
         });
     }

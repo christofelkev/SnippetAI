@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::models::ContentBlock;
+pub use crate::models::ContentBlock;
 
 fn build_matches(bytes: &[u8], open: u8, close: u8) -> HashMap<usize, usize> {
     let mut stack = Vec::new();
@@ -132,6 +132,19 @@ pub fn with_editable_gaps(blocks: Vec<ContentBlock>) -> Vec<ContentBlock> {
     }
 
     result
+}
+
+pub fn blocks_to_string(blocks: &[ContentBlock]) -> String {
+    blocks
+        .iter()
+        .map(|b| match b {
+            ContentBlock::Text(t) => t.clone(),
+            ContentBlock::Image { alt, url } => {
+                let display_alt = if alt.is_empty() { "Image" } else { alt.as_str() };
+                format!("![{}]({})", display_alt, url)
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]

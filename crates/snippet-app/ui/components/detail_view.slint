@@ -1,9 +1,16 @@
 import { Theme } from "../theme.slint";
-import { LineEdit, ScrollView, ComboBox, TextEdit } from "std-widgets.slint";
+import { ScrollView, TextEdit } from "std-widgets.slint";
 
 export struct RelatedItem {
     id: string,
     title: string,
+}
+
+export struct BlockItem {
+    is_image: bool,
+    text_content: string,
+    image_source: image,
+    image_alt: string,
 }
 
 export component DetailView inherits Rectangle {
@@ -15,11 +22,14 @@ export component DetailView inherits Rectangle {
     in property <[string]> languages: ["auto", "bash", "javascript", "typescript", "python", "json", "sql", "rust", "go", "html", "css", "yaml", "markdown"];
     in property <bool> is_copied: false;
     in property <[RelatedItem]> related_snippets: [];
+    in property <[BlockItem]> blocks: [];
 
     callback save(string, string, string, string); // title, group, content, language
     callback copy_snippet();
     callback delete_snippet();
     callback select_related(string); // id
+    callback update_text_block(int, string);
+    callback delete_image_block(int);
 
     background: Theme.background;
 
@@ -51,27 +61,62 @@ export component DetailView inherits Rectangle {
                 padding-bottom: 14px;
                 alignment: space-between;
 
+                // Title and Group inputs (borderless, transparent)
                 VerticalLayout {
                     horizontal-stretch: 1;
                     spacing: 4px;
 
-                    title_input := LineEdit {
-                        text: root.title;
-                        placeholder-text: "Snippet Title";
-                        font-size: 18px;
-                        edited => {
-                            root.title = self.text;
-                            root.save(root.title, root.group, root.content, root.language);
+                    // Title
+                    Rectangle {
+                        height: 32px;
+
+                        if root.title == "": Text {
+                            text: "Snippet Title";
+                            font-size: 22px;
+                            font-weight: 700;
+                            color: Theme.text_muted.transparentize(50%);
+                            vertical-alignment: center;
+                        }
+
+                        title_input := TextInput {
+                            text: root.title;
+                            font-size: 22px;
+                            font-weight: 700;
+                            color: Theme.text_primary;
+                            single-line: true;
+                            vertical-alignment: center;
+                            edited => {
+                                root.title = self.text;
+                                root.save(root.title, root.group, root.content, root.language);
+                            }
                         }
                     }
 
-                    group_input := LineEdit {
-                        text: root.group;
-                        placeholder-text: "GROUP (E.G. DOCKER)";
-                        font-size: 11px;
-                        edited => {
-                            root.group = self.text;
-                            root.save(root.title, root.group, root.content, root.language);
+                    // Group
+                    Rectangle {
+                        height: 20px;
+
+                        if root.group == "": Text {
+                            text: "GROUP (E.G. DOCKER)";
+                            font-size: 11px;
+                            font-weight: 600;
+                            letter-spacing: 1px;
+                            color: Theme.text_muted.transparentize(50%);
+                            vertical-alignment: center;
+                        }
+
+                        group_input := TextInput {
+                            text: root.group;
+                            font-size: 11px;
+                            font-weight: 600;
+                            letter-spacing: 1px;
+                            color: Theme.text_muted;
+                            single-line: true;
+                            vertical-alignment: center;
+                            edited => {
+                                root.group = self.text;
+                                root.save(root.title, root.group, root.content, root.language);
+                            }
                         }
                     }
                 }
@@ -79,21 +124,92 @@ export component DetailView inherits Rectangle {
                 HorizontalLayout {
                     spacing: 8px;
 
-                    // Language combo
-                    lang_box := ComboBox {
-                        model: root.languages;
-                        current-value: root.language == "" ? "auto" : root.language;
-                        width: 110px;
+                    // Custom Language Selector
+                    lang_btn := Rectangle {
+                        height: 32px;
+                        min-width: 95px;
                         y: (parent.height - self.height) / 2;
-                        selected => {
-                            root.language = self.current-value == "auto" ? "" : self.current-value;
-                            root.save(root.title, root.group, root.content, root.language);
+                        border-radius: 6px;
+                        background: lang_touch.has-hover ? Theme.surface_elevated : Theme.surface;
+                        border-width: 1px;
+                        border-color: Theme.border;
+
+                        lang_touch := TouchArea {
+                            clicked => { lang_popup.show(); }
+                        }
+
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            alignment: space-between;
+
+                            Text {
+                                text: root.language == "" ? "AUTO" : root.language.to-uppercase();
+                                font-size: 11px;
+                                font-weight: 700;
+                                color: Theme.text_secondary;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                text: "▾";
+                                font-size: 10px;
+                                color: Theme.text_muted;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        lang_popup := PopupWindow {
+                            x: 0;
+                            y: parent.height + 4px;
+                            width: 130px;
+                            height: 220px;
+
+                            Rectangle {
+                                background: Theme.surface;
+                                border-radius: 6px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                clip: true;
+
+                                ScrollView {
+                                    VerticalLayout {
+                                        spacing: 0px;
+
+                                        for lang in root.languages: Rectangle {
+                                            height: 28px;
+                                            background: item_touch.has-hover ? Theme.surface_elevated : Colors.transparent;
+
+                                            item_touch := TouchArea {
+                                                clicked => {
+                                                    root.language = lang == "auto" ? "" : lang;
+                                                    root.save(root.title, root.group, root.content, root.language);
+                                                    lang_popup.close();
+                                                }
+                                            }
+
+                                            HorizontalLayout {
+                                                padding-left: 10px;
+                                                padding-right: 10px;
+
+                                                Text {
+                                                    text: lang == "auto" ? "AUTO" : lang.to-uppercase();
+                                                    font-size: 11px;
+                                                    font-weight: 600;
+                                                    color: (root.language == lang || (root.language == "" && lang == "auto")) ? Theme.accent : Theme.text_primary;
+                                                    vertical-alignment: center;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
                     // Copy button
                     copy_btn := Rectangle {
-                        width: 70px;
+                        width: 74px;
                         height: 32px;
                         y: (parent.height - self.height) / 2;
                         border-radius: 6px;
@@ -145,17 +261,71 @@ export component DetailView inherits Rectangle {
         editor_scroll := ScrollView {
             VerticalLayout {
                 padding: 16px;
-                spacing: 16px;
+                spacing: 14px;
 
-                // Code Editor
-                editor := TextEdit {
-                    text: root.content;
-                    font-size: 13px;
-                    font-family: "Cascadia Code, Fira Code, Consolas, monospace";
-                    min-height: 360px;
-                    edited => {
-                        root.content = self.text;
-                        root.save(root.title, root.group, root.content, root.language);
+                // Dynamic blocks: Code editors and Inline Images
+                for block[index] in root.blocks: VerticalLayout {
+                    spacing: 8px;
+
+                    // Image Block
+                    if block.is_image: Rectangle {
+                        background: Theme.surface;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        clip: true;
+
+                        VerticalLayout {
+                            padding: 8px;
+                            spacing: 6px;
+
+                            HorizontalLayout {
+                                alignment: space-between;
+
+                                Text {
+                                    text: "🖼 " + (block.image_alt == "" ? "Image" : block.image_alt);
+                                    font-size: 11px;
+                                    color: Theme.text_muted;
+                                    vertical-alignment: center;
+                                }
+
+                                Rectangle {
+                                    width: 22px;
+                                    height: 22px;
+                                    border-radius: 4px;
+                                    background: del_img_touch.has-hover ? Theme.danger : Theme.surface_elevated;
+
+                                    del_img_touch := TouchArea {
+                                        clicked => { root.delete_image_block(index); }
+                                    }
+
+                                    Text {
+                                        text: "✕";
+                                        font-size: 11px;
+                                        color: del_img_touch.has-hover ? #ffffff : Theme.danger;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+
+                            Image {
+                                source: block.image_source;
+                                image-fit: contain;
+                                max-height: 380px;
+                            }
+                        }
+                    }
+
+                    // Text / Code Block
+                    if !block.is_image: TextEdit {
+                        text: block.text_content;
+                        font-size: 13px;
+                        font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                        min-height: (root.blocks.length == 1 ? 380px : 80px);
+                        edited => {
+                            root.update_text_block(index, self.text);
+                        }
                     }
                 }
 

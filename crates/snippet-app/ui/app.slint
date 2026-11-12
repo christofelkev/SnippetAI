@@ -4,7 +4,8 @@ import { QuickPasteWindow } from "quickpaste.slint";
 export { QuickPasteWindow }
 import { Sidebar, GroupItem } from "components/sidebar.slint";
 import { SnippetList, SnippetItem } from "components/snippet_list.slint";
-import { DetailView, RelatedItem } from "components/detail_view.slint";
+import { DetailView, RelatedItem, BlockItem } from "components/detail_view.slint";
+export { BlockItem }
 import { ResizeHandle } from "components/resize_handle.slint";
 import { SettingsModal } from "components/settings_modal.slint";
 import { AIModal, AIGroupPreview } from "components/ai_modal.slint";
@@ -14,8 +15,8 @@ export component MainWindow inherits Window {
     default-font-family: Theme.font_family;
     preferred-width: 1000px;
     preferred-height: 700px;
-    min-width: 750px;
-    min-height: 500px;
+    min-width: 800px;
+    min-height: 520px;
     background: Theme.background;
 
     // Resizable layout state
@@ -38,6 +39,7 @@ export component MainWindow inherits Window {
     in-out property <string> detail_language: "";
     in property <bool> is_copied: false;
     in property <[RelatedItem]> related_snippets: [];
+    in property <[BlockItem]> detail_blocks: [];
 
     // Modals state
     in-out property <bool> is_settings_open: false;
@@ -65,6 +67,8 @@ export component MainWindow inherits Window {
     callback run_ai_grouping();
     callback apply_ai_groups();
     callback persist_widths(int, int);
+    callback update_block_text(int, string);
+    callback delete_block_image(int);
 
     // Background wallpaper for Persona 5 & Cyberpunk themes
     if Theme.has_bg_image: Image {
@@ -77,9 +81,10 @@ export component MainWindow inherits Window {
 
     // Main 3-column layout
     HorizontalLayout {
-        // 1. Sidebar
+        // 1. Sidebar (Fixed width, never squished)
         Sidebar {
             width: root.sidebar_width;
+            horizontal-stretch: 0;
             groups: root.groups;
             selected_group: root.selected_group;
             all_count: root.all_count;
@@ -98,9 +103,10 @@ export component MainWindow inherits Window {
             }
         }
 
-        // 2. Snippet List
+        // 2. Snippet List (Fixed width, never squished)
         SnippetList {
             width: root.list_width;
+            horizontal-stretch: 0;
             snippets: root.snippets;
             selected_id: root.selected_snippet_id;
             search_query <=> root.search_query;
@@ -114,7 +120,7 @@ export component MainWindow inherits Window {
         // Divider 2
         ResizeHandle {
             moved(delta) => {
-                root.list_width = Math.max(220px, Math.min(600px, root.list_width + delta));
+                root.list_width = Math.max(220px, Math.min(500px, root.list_width + delta));
                 root.persist_widths(root.sidebar_width / 1px, root.list_width / 1px);
             }
             double_clicked => {
@@ -123,9 +129,10 @@ export component MainWindow inherits Window {
             }
         }
 
-        // 3. Detail View
+        // 3. Detail View (Fills remaining space)
         DetailView {
             horizontal-stretch: 1;
+            min-width: 320px;
             snippet_id: root.selected_snippet_id;
             title <=> root.detail_title;
             group <=> root.detail_group;
@@ -133,10 +140,13 @@ export component MainWindow inherits Window {
             language <=> root.detail_language;
             is_copied: root.is_copied;
             related_snippets: root.related_snippets;
+            blocks: root.detail_blocks;
             save(t, g, c, l) => { root.save_snippet(t, g, c, l); }
             copy_snippet => { root.copy_snippet(); }
             delete_snippet => { root.delete_snippet(); }
             select_related(id) => { root.select_snippet(id); }
+            update_text_block(idx, txt) => { root.update_block_text(idx, txt); }
+            delete_image_block(idx) => { root.delete_block_image(idx); }
         }
     }
 
