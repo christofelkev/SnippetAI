@@ -26,3 +26,7 @@ target/
 
 # Agent-only scratch context — never commit, see file header
 AGENT_CONTEXT.md
+
+# Plans, design specs, and documentation markdown
+docs/
+*.plan.md
