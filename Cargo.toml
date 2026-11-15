@@ -4,6 +4,3 @@ members = [
     "crates/snippet-core",
     "crates/snippet-app",
 ]
-exclude = [
-    "src-tauri",
-]
