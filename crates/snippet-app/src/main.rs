@@ -35,13 +35,24 @@ fn theme_id_to_str(id: i32) -> &'static str {
     }
 }
 
+fn trigger_toast(mw: &MainWindow, msg: &str, is_err: bool) {
+    mw.invoke_show_toast(SharedString::from(msg), is_err);
+    let mw_weak = mw.as_weak();
+    slint::Timer::single_shot(std::time::Duration::from_millis(2500), move || {
+        if let Some(mw) = mw_weak.upgrade() {
+            mw.invoke_hide_toast();
+        }
+    });
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 1. Single Instance Guard
+    // 1. Single Instance Guard with Window Focus
     let _instance_guard = match SingleInstanceGuard::acquire("Local\\SnippetAI_SingleInstance") {
         Some(g) => g,
         None => {
-            eprintln!("SnippetAI is already running.");
+            crate::instance::focus_existing_instance("SnippetAI");
+            eprintln!("SnippetAI is already running. Focused existing window.");
             return Ok(());
         }
     };
@@ -140,6 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     *state.selected_id.lock().unwrap() = snippet.id.clone();
                     state.reload_snippets();
                     state.update_ui(&mw);
+                    trigger_toast(&mw, "New snippet created", false);
                 }
             }
         });
@@ -197,6 +209,56 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    // Copy snippet handler with visual feedback
+    {
+        let state = state.clone();
+        let mw_weak = main_window.as_weak();
+        main_window.on_copy_snippet(move || {
+            if let Some(mw) = mw_weak.upgrade() {
+                let selected_id = state.selected_id.lock().unwrap().clone();
+                if !selected_id.is_empty() {
+                    let all = state.all_snippets.lock().unwrap();
+                    if let Some(s) = all.iter().find(|s| s.id == selected_id) {
+                        let _ = copy_clean_code(&s.content);
+                        mw.set_is_copied(true);
+                        trigger_toast(&mw, "Snippet copied to clipboard!", false);
+
+                        let mw_inner = mw.as_weak();
+                        slint::Timer::single_shot(std::time::Duration::from_millis(2000), move || {
+                            if let Some(w) = mw_inner.upgrade() {
+                                w.set_is_copied(false);
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    // Delete snippet handler
+    {
+        let state = state.clone();
+        let mw_weak = main_window.as_weak();
+        main_window.on_delete_snippet(move || {
+            if let Some(mw) = mw_weak.upgrade() {
+                let selected_id = state.selected_id.lock().unwrap().clone();
+                if !selected_id.is_empty() {
+                    let _ = state.db.delete_snippet(&selected_id);
+                    *state.selected_id.lock().unwrap() = String::new();
+                    state.reload_snippets();
+                    {
+                        let all = state.all_snippets.lock().unwrap();
+                        if let Some(first) = all.first() {
+                            *state.selected_id.lock().unwrap() = first.id.clone();
+                        }
+                    }
+                    state.update_ui(&mw);
+                    trigger_toast(&mw, "Snippet deleted", false);
+                }
+            }
+        });
+    }
+
     {
         let state = state.clone();
         let mw_weak = main_window.as_weak();
@@ -221,6 +283,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             );
                             state.reload_snippets();
                             state.update_ui(&mw);
+                            trigger_toast(&mw, "Image removed", false);
                         }
                     }
                 }
@@ -270,7 +333,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let state = state.clone();
         let mw_weak = main_window.as_weak();
+        main_window.on_search_edited(move |query| {
+            if let Some(mw) = mw_weak.upgrade() {
+                *state.search_query.lock().unwrap() = query.to_string();
+                let snippets = state.all_snippets.lock().unwrap().clone();
+                let selected_group = state.selected_group.lock().unwrap().clone();
+                let q_lower = query.to_lowercase();
+                let filtered: Vec<SnippetItem> = snippets
+                    .iter()
+                    .filter(|s| {
+                        if !selected_group.is_empty() && s.group_name != selected_group {
+                            return false;
+                        }
+                        if !q_lower.is_empty() {
+                            let matches_title = s.title.to_lowercase().contains(&q_lower);
+                            let matches_content = s.content.to_lowercase().contains(&q_lower);
+                            let matches_group = s.group_name.to_lowercase().contains(&q_lower);
+                            return matches_title || matches_content || matches_group;
+                        }
+                        true
+                    })
+                    .map(|s| {
+                        let clean_preview = snippet_core::content::strip_image_markdown(&s.content);
+                        let first_line = clean_preview.lines().next().unwrap_or("").to_string();
+                        SnippetItem {
+                            id: SharedString::from(&s.id),
+                            title: SharedString::from(&s.title),
+                            preview: SharedString::from(first_line),
+                            group_name: SharedString::from(&s.group_name),
+                            language: SharedString::from(&s.language),
+                        }
+                    })
+                    .collect();
+                mw.set_snippets(ModelRc::new(VecModel::from(filtered)));
+            }
+        });
+    }
+
+    // 6. Global Hotkey setup with dynamic rebinding
+    let initial_hotkey = db.get_setting("global_hotkey")
+        .unwrap_or_default()
+        .unwrap_or_else(|| "Ctrl+Shift+Space".to_string());
+    let mut hm_opt = HotkeyManager::new().ok();
+    if let Some(ref mut hm) = hm_opt {
+        if let Err(e) = hm.register(&initial_hotkey) {
+            eprintln!("Failed to register hotkey '{}': {}", initial_hotkey, e);
+            let _ = hm.register_default();
+        }
+    }
+    let hotkey_manager = Arc::new(std::sync::Mutex::new(hm_opt));
+
+    {
+        let state = state.clone();
+        let mw_weak = main_window.as_weak();
         let qp_weak = quickpaste_window.as_weak();
+        let hotkey_manager_clone = hotkey_manager.clone();
         main_window.on_save_settings(move |theme_id, prov, key, _model, hk| {
             let theme_str = theme_id_to_str(theme_id);
             let _ = state.db.set_setting("app_theme", theme_str);
@@ -278,9 +395,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let _ = state.db.set_setting("ai_api_key", key.as_str());
             let _ = state.db.set_setting("global_hotkey", hk.as_str());
 
+            // Dynamically rebind hotkey if changed
+            if let Ok(mut hm_guard) = hotkey_manager_clone.lock() {
+                if let Some(ref mut hm) = *hm_guard {
+                    if let Err(e) = hm.register(hk.as_str()) {
+                        eprintln!("Failed to rebind hotkey '{}': {}", hk, e);
+                    }
+                }
+            }
+
             if let Some(mw) = mw_weak.upgrade() {
                 mw.global::<Theme>().set_theme_id(theme_id);
                 mw.set_current_theme(theme_id);
+                trigger_toast(&mw, "Settings saved!", false);
             }
             if let Some(qp) = qp_weak.upgrade() {
                 qp.global::<Theme>().set_theme_id(theme_id);
@@ -327,9 +454,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         }
                                     }).collect();
                                     window.set_ai_suggestions(ModelRc::new(VecModel::from(previews)));
+                                    trigger_toast(&window, "AI grouping suggestions ready!", false);
                                 }
                                 Err(err) => {
-                                    window.set_ai_error(SharedString::from(err));
+                                    window.set_ai_error(SharedString::from(&err));
+                                    trigger_toast(&window, "AI grouping failed", true);
                                 }
                             }
                         }
@@ -354,12 +483,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 state.reload_snippets();
                 if let Some(mw) = mw_weak.upgrade() {
                     state.update_ui(&mw);
+                    trigger_toast(&mw, "AI groups applied successfully!", false);
                 }
             }
         });
     }
 
-    // 6. Setup QuickPaste Window Callbacks
+    // 7. Setup QuickPaste Window Callbacks
     {
         let state = state.clone();
         let qp_weak = quickpaste_window.as_weak();
@@ -384,20 +514,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    // 7. Global Hotkey integration
-    let mut hotkey_manager = HotkeyManager::new().ok();
-    if let Some(ref mut hm) = hotkey_manager {
-        let _ = hm.register_default();
-    }
-
+    // 8. Event-Driven Background Worker for Global Hotkey (0% Idle CPU)
     let qp_weak_hotkey = quickpaste_window.as_weak();
     let hotkey_receiver = global_hotkey::GlobalHotKeyEvent::receiver().clone();
-    let _timer = slint::Timer::default();
-    _timer.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(50), move || {
-        while let Ok(_event) = hotkey_receiver.try_recv() {
-            if let Some(qp) = qp_weak_hotkey.upgrade() {
-                let _ = qp.show();
-            }
+    std::thread::spawn(move || {
+        while let Ok(_event) = hotkey_receiver.recv() {
+            let qp_weak = qp_weak_hotkey.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(qp) = qp_weak.upgrade() {
+                    let _ = qp.show();
+                }
+            });
         }
     });
 

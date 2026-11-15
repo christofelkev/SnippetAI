@@ -10,9 +10,11 @@ export { ImageItem }
 import { ResizeHandle } from "components/resize_handle.slint";
 import { SettingsModal } from "components/settings_modal.slint";
 import { AIModal, AIGroupPreview } from "components/ai_modal.slint";
+import { Toast } from "components/toast.slint";
 
 export component MainWindow inherits Window {
     title: "SnippetAI";
+    icon: @image-url("assets/icons/32x32.png");
     default-font-family: Theme.font_family;
     preferred-width: 1000px;
     preferred-height: 700px;
@@ -59,6 +61,20 @@ export component MainWindow inherits Window {
     in property <bool> is_ai_loading: false;
     in property <string> ai_error: "";
     in property <[AIGroupPreview]> ai_suggestions: [];
+
+    // Toast notification state
+    in-out property <bool> toast_visible: false;
+    in-out property <string> toast_message: "";
+    in-out property <bool> toast_is_error: false;
+
+    public function show_toast(msg: string, is_err: bool) {
+        root.toast_message = msg;
+        root.toast_is_error = is_err;
+        root.toast_visible = true;
+    }
+    public function hide_toast() {
+        root.toast_visible = false;
+    }
 
     // Settings fields
     in-out property <int> setting_theme: 0;
@@ -187,5 +203,14 @@ export component MainWindow inherits Window {
         close => { root.is_ai_open = false; }
         run_ai_grouping => { root.run_ai_grouping(); }
         apply_groups => { root.apply_ai_groups(); }
+    }
+
+    // Toast Notification Floating Card
+    if root.toast_visible: Toast {
+        message: root.toast_message;
+        is_error: root.toast_is_error;
+        is_visible: root.toast_visible;
+        x: parent.width - self.width - 24px;
+        y: parent.height - self.height - 24px;
     }
 }
