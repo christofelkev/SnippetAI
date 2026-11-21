@@ -16,28 +16,36 @@ export component Sidebar inherits Rectangle {
     background: Theme.surface;
 
     VerticalLayout {
-        padding-top: 14px;
-        padding-bottom: 14px;
+        padding-top: 16px;
+        padding-bottom: 16px;
         padding-left: 12px;
         padding-right: 12px;
-        spacing: 10px;
+        spacing: 12px;
 
         // Header
-        Text {
-            text: "GROUPS";
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: Theme.text_muted;
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+
+            Text {
+                text: "GROUPS";
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 1.2px;
+                color: Theme.text_muted;
+                vertical-alignment: center;
+            }
         }
 
         // All Snippets button
         all_btn := Rectangle {
-            height: 36px;
-            border-radius: 6px;
+            height: Theme.btn_h_md;
+            border-radius: Theme.radius_md;
             background: root.selected_group == "" ? 
-                (Theme.theme_id == 1 ? #e60012.transparentize(80%) : Theme.accent.transparentize(80%)) :
+                (Theme.theme_id == 1 ? #e60012.transparentize(82%) : Theme.accent.transparentize(85%)) :
                 (all_touch.has-hover ? Theme.surface_elevated : Colors.transparent);
+            border-width: root.selected_group == "" ? 1px : 0px;
+            border-color: root.selected_group == "" ? (Theme.theme_id == 1 ? #e60012.transparentize(60%) : Theme.accent.transparentize(70%)) : Colors.transparent;
 
             all_touch := TouchArea {
                 clicked => { root.select_group(""); }
@@ -45,29 +53,47 @@ export component Sidebar inherits Rectangle {
 
             HorizontalLayout {
                 padding-left: 10px;
-                padding-right: 10px;
+                padding-right: 8px;
                 alignment: space-between;
 
-                Text {
-                    text: "📁 All Snippets";
-                    font-size: 13px;
-                    vertical-alignment: center;
-                    color: root.selected_group == "" ? Theme.accent : Theme.text_primary;
-                }
-
-                Rectangle {
-                    width: 22px;
-                    height: 18px;
-                    border-radius: 9px;
-                    background: Theme.surface_elevated;
-                    y: (parent.height - self.height) / 2;
+                HorizontalLayout {
+                    spacing: 8px;
 
                     Text {
-                        text: root.all_count;
-                        font-size: 11px;
-                        color: Theme.text_muted;
-                        horizontal-alignment: center;
+                        text: "📁";
+                        font-size: 13px;
                         vertical-alignment: center;
+                    }
+
+                    Text {
+                        text: "All Snippets";
+                        font-size: 13px;
+                        font-weight: root.selected_group == "" ? 600 : 500;
+                        color: root.selected_group == "" ? (Theme.theme_id == 1 ? #ffffff : Theme.accent) : Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+                }
+
+                // Standardized Badge Counter
+                Rectangle {
+                    height: Theme.badge_h;
+                    min-width: 24px;
+                    border-radius: Theme.radius_sm;
+                    background: root.selected_group == "" ? (Theme.theme_id == 1 ? #e60012.transparentize(60%) : Theme.accent.transparentize(75%)) : Theme.surface_elevated;
+                    y: (parent.height - self.height) / 2;
+
+                    HorizontalLayout {
+                        padding-left: 6px;
+                        padding-right: 6px;
+
+                        Text {
+                            text: root.all_count;
+                            font-size: 11px;
+                            font-weight: 600;
+                            color: root.selected_group == "" ? (Theme.theme_id == 1 ? #ffffff : Theme.accent) : Theme.text_muted;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
                     }
                 }
             }
@@ -76,13 +102,16 @@ export component Sidebar inherits Rectangle {
         // Groups list
         ScrollView {
             VerticalLayout {
-                spacing: 4px;
+                spacing: 3px;
+
                 for group[index] in root.groups: Rectangle {
-                    height: 36px;
-                    border-radius: 6px;
+                    height: Theme.btn_h_md;
+                    border-radius: Theme.radius_md;
                     background: root.selected_group == group.name ?
-                        (Theme.theme_id == 1 ? #e60012.transparentize(80%) : Theme.accent.transparentize(80%)) :
+                        (Theme.theme_id == 1 ? #e60012.transparentize(82%) : Theme.accent.transparentize(85%)) :
                         (item_touch.has-hover ? Theme.surface_elevated : Colors.transparent);
+                    border-width: root.selected_group == group.name ? 1px : 0px;
+                    border-color: root.selected_group == group.name ? (Theme.theme_id == 1 ? #e60012.transparentize(60%) : Theme.accent.transparentize(70%)) : Colors.transparent;
 
                     item_touch := TouchArea {
                         clicked => { root.select_group(group.name); }
@@ -90,7 +119,7 @@ export component Sidebar inherits Rectangle {
 
                     HorizontalLayout {
                         padding-left: 10px;
-                        padding-right: 10px;
+                        padding-right: 8px;
                         alignment: space-between;
 
                         HorizontalLayout {
@@ -98,32 +127,40 @@ export component Sidebar inherits Rectangle {
 
                             Text {
                                 text: root.selected_group == group.name ? "📂" : "📁";
-                                font-size: 12px;
+                                font-size: 13px;
                                 vertical-alignment: center;
                             }
 
                             Text {
                                 text: group.name;
                                 font-size: 13px;
+                                font-weight: root.selected_group == group.name ? 600 : 500;
                                 overflow: elide;
-                                color: root.selected_group == group.name ? Theme.accent : Theme.text_primary;
+                                color: root.selected_group == group.name ? (Theme.theme_id == 1 ? #ffffff : Theme.accent) : Theme.text_primary;
                                 vertical-alignment: center;
                             }
                         }
 
+                        // Standardized Badge Counter
                         Rectangle {
-                            width: 22px;
-                            height: 18px;
-                            border-radius: 9px;
-                            background: Theme.surface_elevated;
+                            height: Theme.badge_h;
+                            min-width: 24px;
+                            border-radius: Theme.radius_sm;
+                            background: root.selected_group == group.name ? (Theme.theme_id == 1 ? #e60012.transparentize(60%) : Theme.accent.transparentize(75%)) : Theme.surface_elevated;
                             y: (parent.height - self.height) / 2;
 
-                            Text {
-                                text: group.count;
-                                font-size: 11px;
-                                color: Theme.text_muted;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
+                            HorizontalLayout {
+                                padding-left: 6px;
+                                padding-right: 6px;
+
+                                Text {
+                                    text: group.count;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    color: root.selected_group == group.name ? (Theme.theme_id == 1 ? #ffffff : Theme.accent) : Theme.text_muted;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
                             }
                         }
                     }

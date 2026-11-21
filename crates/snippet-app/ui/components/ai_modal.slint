@@ -30,9 +30,9 @@ export component AIModal inherits Rectangle {
 
         modal_card := Rectangle {
             width: 540px;
-            height: 480px;
+            height: 490px;
             background: Theme.surface;
-            border-radius: 10px;
+            border-radius: Theme.radius_xl;
             border-width: 1px;
             border-color: Theme.border;
             x: (parent.width - self.width) / 2;
@@ -50,13 +50,16 @@ export component AIModal inherits Rectangle {
                         font-size: 18px;
                         font-weight: 700;
                         color: Theme.text_primary;
+                        vertical-alignment: center;
                     }
 
                     Rectangle {
-                        width: 24px;
-                        height: 24px;
+                        width: 28px;
+                        height: 28px;
+                        border-radius: Theme.radius_md;
+                        background: close_touch.has-hover ? Theme.surface_elevated : Colors.transparent;
 
-                        TouchArea {
+                        close_touch := TouchArea {
                             clicked => {
                                 if !root.is_loading {
                                     root.close();
@@ -66,7 +69,7 @@ export component AIModal inherits Rectangle {
 
                         Text {
                             text: "✕";
-                            font-size: 14px;
+                            font-size: 13px;
                             color: Theme.text_muted;
                             horizontal-alignment: center;
                             vertical-alignment: center;
@@ -81,19 +84,19 @@ export component AIModal inherits Rectangle {
                 }
 
                 if root.error_msg != "": Rectangle {
-                    height: 32px;
-                    border-radius: 6px;
+                    height: 36px;
+                    border-radius: Theme.radius_md;
                     background: Theme.danger.transparentize(85%);
                     border-width: 1px;
                     border-color: Theme.danger;
 
                     HorizontalLayout {
-                        padding-left: 10px;
-                        padding-right: 10px;
+                        padding-left: 12px;
+                        padding-right: 12px;
 
                         Text {
                             text: root.error_msg;
-                            font-size: 11px;
+                            font-size: 12px;
                             color: Theme.danger;
                             vertical-alignment: center;
                         }
@@ -117,12 +120,12 @@ export component AIModal inherits Rectangle {
 
                         if !root.is_loading: Rectangle {
                             width: 180px;
-                            height: 38px;
-                            border-radius: 6px;
-                            background: Theme.accent;
+                            height: Theme.btn_h_md;
+                            border-radius: Theme.radius_md;
+                            background: run_touch.has-hover ? Theme.accent_hover : Theme.accent;
                             x: (parent.width - self.width) / 2;
 
-                            TouchArea {
+                            run_touch := TouchArea {
                                 clicked => { root.run_ai_grouping(); }
                             }
 
@@ -145,7 +148,7 @@ export component AIModal inherits Rectangle {
                         spacing: 8px;
 
                         for group in root.suggested_groups: Rectangle {
-                            border-radius: 6px;
+                            border-radius: Theme.radius_md;
                             background: Theme.surface_elevated;
                             border-width: 1px;
                             border-color: Theme.border;
@@ -187,17 +190,19 @@ export component AIModal inherits Rectangle {
                     spacing: 10px;
 
                     cancel_btn := Rectangle {
-                        width: 80px;
-                        height: 34px;
-                        border-radius: 6px;
+                        width: 84px;
+                        height: Theme.btn_h_md;
+                        border-radius: Theme.radius_md;
                         border-width: 1px;
                         border-color: Theme.border;
+                        background: cancel_touch.has-hover ? Theme.surface_elevated : Colors.transparent;
 
-                        TouchArea { clicked => { root.close(); } }
+                        cancel_touch := TouchArea { clicked => { root.close(); } }
 
                         Text {
                             text: "Cancel";
                             font-size: 12px;
+                            font-weight: 500;
                             color: Theme.text_secondary;
                             horizontal-alignment: center;
                             vertical-alignment: center;
@@ -206,11 +211,11 @@ export component AIModal inherits Rectangle {
 
                     apply_btn := Rectangle {
                         width: 110px;
-                        height: 34px;
-                        border-radius: 6px;
-                        background: Theme.success;
+                        height: Theme.btn_h_md;
+                        border-radius: Theme.radius_md;
+                        background: apply_touch.has-hover ? Theme.success.transparentize(15%) : Theme.success;
 
-                        TouchArea {
+                        apply_touch := TouchArea {
                             clicked => {
                                 root.apply_groups();
                                 root.close();

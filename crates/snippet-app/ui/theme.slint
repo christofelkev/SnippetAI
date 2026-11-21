@@ -1,6 +1,17 @@
 export global Theme {
     in-out property <int> theme_id: 0; // 0: Zinc, 1: Hacker Red, 2: Ocean Blue, 3: Cyberpunk
 
+    // Design Tokens (shadcn / Tailwind scale)
+    out property <length> radius_sm: 4px;
+    out property <length> radius_md: 6px;
+    out property <length> radius_lg: 8px;
+    out property <length> radius_xl: 12px;
+
+    out property <length> btn_h_sm: 32px;
+    out property <length> btn_h_md: 36px;
+    out property <length> input_h: 36px;
+    out property <length> badge_h: 20px;
+
     // Background color
     out property <color> background: 
         theme_id == 1 ? #000000 :
@@ -11,16 +22,16 @@ export global Theme {
     // Surface / Sidebar / Cards
     out property <color> surface:
         theme_id == 1 ? #0a0a0a :
-        theme_id == 2 ? #f1f5f9 :
+        theme_id == 2 ? #ffffff :
         theme_id == 3 ? #121212 :
-        #18181b;
+        #121215;
 
-    // Elevated surface (active card, inputs, modals)
+    // Elevated surface (hover, active item, modal cards)
     out property <color> surface_elevated:
         theme_id == 1 ? #1a1a1a :
-        theme_id == 2 ? #ffffff :
-        theme_id == 3 ? #222222 :
-        #27272a;
+        theme_id == 2 ? #f1f5f9 :
+        theme_id == 3 ? #1e1e1e :
+        #1e1e24;
 
     // Borders
     out property <color> border:
@@ -34,29 +45,30 @@ export global Theme {
         theme_id == 1 ? #330004 :
         theme_id == 2 ? #f1f5f9 :
         theme_id == 3 ? #440010 :
-        #1f1f23;
+        #1a1a1e;
 
     // Primary Text
     out property <color> text_primary:
         theme_id == 1 ? #ffffff :
         theme_id == 2 ? #0f172a :
         theme_id == 3 ? #fcee0a :
-        #fafafa;
+        #f4f4f5;
 
-    // Secondary / Muted Text
+    // Secondary Text
     out property <color> text_secondary:
         theme_id == 1 ? #dfdfdf :
-        theme_id == 2 ? #334155 :
+        theme_id == 2 ? #475569 :
         theme_id == 3 ? #00f0ff :
         #a1a1aa;
 
+    // Muted Text
     out property <color> text_muted:
         theme_id == 1 ? #8c8c8c :
         theme_id == 2 ? #64748b :
         theme_id == 3 ? #8f8f8f :
         #71717a;
 
-    // Accent (Indigo / Crimson / Sky / Cyber Yellow)
+    // Accent
     out property <color> accent:
         theme_id == 1 ? #e60012 :
         theme_id == 2 ? #0284c7 :
@@ -80,7 +92,7 @@ export global Theme {
     out property <string> font_family:
         theme_id == 1 ? "Teko, Inter, sans-serif" :
         theme_id == 3 ? "Orbitron, Inter, sans-serif" :
-        "Inter, system-ui, sans-serif";
+        "Inter, system-ui, -apple-system, sans-serif";
 
     out property <image> bg_persona: @image-url("assets/bg-persona.png");
     out property <image> bg_cyberpunk: @image-url("assets/bg-cyberpunk.png");

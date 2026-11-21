@@ -46,9 +46,9 @@ export component DetailView inherits Rectangle {
     }
 
     if root.snippet_id != "": VerticalLayout {
-        // Top Header
+        // Top Header (Standardized 68px compact header)
         Rectangle {
-            height: 84px;
+            height: 68px;
 
             Rectangle {
                 y: parent.height - 1px;
@@ -57,25 +57,26 @@ export component DetailView inherits Rectangle {
             }
 
             HorizontalLayout {
-                padding-left: 24px;
-                padding-right: 24px;
-                padding-top: 14px;
-                padding-bottom: 14px;
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-top: 10px;
+                padding-bottom: 10px;
                 alignment: space-between;
 
-                // Title and Group inputs (borderless, transparent, seamless heading style)
+                // Title and Group inputs (borderless heading style)
                 VerticalLayout {
                     horizontal-stretch: 1;
-                    spacing: 4px;
+                    spacing: 2px;
+                    alignment: center;
 
                     // Title
                     Rectangle {
-                        height: 32px;
+                        height: 28px;
 
                         HorizontalLayout {
                             if root.title == "": Text {
                                 text: "Snippet Title";
-                                font-size: 22px;
+                                font-size: 20px;
                                 font-weight: 700;
                                 color: Theme.text_muted.transparentize(50%);
                                 vertical-alignment: center;
@@ -85,7 +86,7 @@ export component DetailView inherits Rectangle {
                         HorizontalLayout {
                             title_input := TextInput {
                                 text: root.title;
-                                font-size: 22px;
+                                font-size: 20px;
                                 font-weight: 700;
                                 color: Theme.text_primary;
                                 single-line: true;
@@ -100,14 +101,14 @@ export component DetailView inherits Rectangle {
 
                     // Group Subtitle
                     Rectangle {
-                        height: 18px;
+                        height: 16px;
 
                         HorizontalLayout {
                             if root.group == "": Text {
                                 text: "GROUP (E.G. DOCKER)";
                                 font-size: 11px;
                                 font-weight: 600;
-                                letter-spacing: 1px;
+                                letter-spacing: 1.2px;
                                 color: Theme.text_muted.transparentize(50%);
                                 vertical-alignment: center;
                             }
@@ -118,7 +119,7 @@ export component DetailView inherits Rectangle {
                                 text: root.group;
                                 font-size: 11px;
                                 font-weight: 600;
-                                letter-spacing: 1px;
+                                letter-spacing: 1.2px;
                                 color: Theme.text_muted;
                                 single-line: true;
                                 vertical-alignment: center;
@@ -131,16 +132,16 @@ export component DetailView inherits Rectangle {
                     }
                 }
 
-                // Action controls
+                // Action controls (Standardized 32px height buttons)
                 HorizontalLayout {
                     spacing: 8px;
+                    alignment: center;
 
                     // Custom Sleek Language Selector
                     lang_btn := Rectangle {
-                        height: 32px;
-                        min-width: 95px;
-                        y: (parent.height - self.height) / 2;
-                        border-radius: 6px;
+                        height: Theme.btn_h_sm;
+                        min-width: 92px;
+                        border-radius: Theme.radius_md;
                         background: lang_touch.has-hover ? Theme.surface_elevated : Theme.surface;
                         border-width: 1px;
                         border-color: Theme.border;
@@ -157,7 +158,7 @@ export component DetailView inherits Rectangle {
                             Text {
                                 text: root.language == "" ? "AUTO" : root.language.to-uppercase();
                                 font-size: 11px;
-                                font-weight: 700;
+                                font-weight: 600;
                                 color: Theme.text_secondary;
                                 vertical-alignment: center;
                             }
@@ -178,7 +179,7 @@ export component DetailView inherits Rectangle {
 
                             Rectangle {
                                 background: Theme.surface;
-                                border-radius: 6px;
+                                border-radius: Theme.radius_md;
                                 border-width: 1px;
                                 border-color: Theme.border;
                                 clip: true;
@@ -220,13 +221,12 @@ export component DetailView inherits Rectangle {
 
                     // Copy button
                     copy_btn := Rectangle {
-                        width: 74px;
-                        height: 32px;
-                        y: (parent.height - self.height) / 2;
-                        border-radius: 6px;
+                        width: 76px;
+                        height: Theme.btn_h_sm;
+                        border-radius: Theme.radius_md;
                         background: root.is_copied ? Theme.success : (copy_touch.has-hover ? Theme.surface_elevated : Theme.surface);
                         border-width: 1px;
-                        border-color: Theme.border;
+                        border-color: root.is_copied ? Theme.success : Theme.border;
 
                         copy_touch := TouchArea {
                             clicked => { root.copy_snippet(); }
@@ -234,7 +234,7 @@ export component DetailView inherits Rectangle {
 
                         Text {
                             text: root.is_copied ? "✓ Copied" : "Copy";
-                            font-size: 11px;
+                            font-size: 12px;
                             font-weight: 600;
                             color: root.is_copied ? #ffffff : Theme.text_primary;
                             horizontal-alignment: center;
@@ -242,15 +242,14 @@ export component DetailView inherits Rectangle {
                         }
                     }
 
-                    // Delete button
+                    // Delete button (Square 32x32px ghost button with danger hover)
                     del_btn := Rectangle {
-                        width: 32px;
-                        height: 32px;
-                        y: (parent.height - self.height) / 2;
-                        border-radius: 6px;
-                        background: del_touch.has-hover ? Theme.danger : Theme.surface;
+                        width: Theme.btn_h_sm;
+                        height: Theme.btn_h_sm;
+                        border-radius: Theme.radius_md;
+                        background: del_touch.has-hover ? Theme.danger.transparentize(85%) : Theme.surface;
                         border-width: 1px;
-                        border-color: Theme.border;
+                        border-color: del_touch.has-hover ? Theme.danger : Theme.border;
 
                         del_touch := TouchArea {
                             clicked => { root.delete_snippet(); }
@@ -259,7 +258,7 @@ export component DetailView inherits Rectangle {
                         Text {
                             text: "🗑";
                             font-size: 12px;
-                            color: del_touch.has-hover ? #ffffff : Theme.danger;
+                            color: del_touch.has-hover ? Theme.danger : Theme.text_muted;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
@@ -274,7 +273,7 @@ export component DetailView inherits Rectangle {
                 padding: 20px;
                 spacing: 16px;
 
-                // Case 1: Pure Code / Text Snippet (Single seamless editor!)
+                // Case 1: Pure Code / Text Snippet
                 if !root.has_images: TextEdit {
                     text: root.content;
                     font-size: 13px;
@@ -293,13 +292,13 @@ export component DetailView inherits Rectangle {
                     // Display all images cleanly in rounded cards
                     for img in root.images: Rectangle {
                         background: Theme.surface;
-                        border-radius: 8px;
+                        border-radius: Theme.radius_lg;
                         border-width: 1px;
                         border-color: Theme.border;
                         clip: true;
 
                         VerticalLayout {
-                            padding: 10px;
+                            padding: 12px;
                             spacing: 8px;
 
                             HorizontalLayout {
@@ -308,6 +307,7 @@ export component DetailView inherits Rectangle {
                                 Text {
                                     text: "🖼 " + (img.image_alt == "" ? "Attached Image" : img.image_alt);
                                     font-size: 11px;
+                                    font-weight: 500;
                                     color: Theme.text_muted;
                                     vertical-alignment: center;
                                 }
@@ -315,7 +315,7 @@ export component DetailView inherits Rectangle {
                                 del_img_btn := Rectangle {
                                     width: 22px;
                                     height: 22px;
-                                    border-radius: 4px;
+                                    border-radius: Theme.radius_sm;
                                     background: del_img_touch.has-hover ? Theme.danger : Theme.surface_elevated;
 
                                     del_img_touch := TouchArea {
@@ -348,7 +348,7 @@ export component DetailView inherits Rectangle {
                             text: "NOTES / CODE";
                             font-size: 10px;
                             font-weight: 700;
-                            letter-spacing: 1px;
+                            letter-spacing: 1.2px;
                             color: Theme.text_muted;
                         }
 
@@ -374,15 +374,15 @@ export component DetailView inherits Rectangle {
                         font-size: 10px;
                         font-weight: 700;
                         color: Theme.text_muted;
-                        letter-spacing: 1px;
+                        letter-spacing: 1.2px;
                     }
 
                     HorizontalLayout {
                         spacing: 8px;
 
                         for rel in root.related_snippets: Rectangle {
-                            height: 32px;
-                            border-radius: 5px;
+                            height: 28px;
+                            border-radius: Theme.radius_md;
                             background: rel_touch.has-hover ? Theme.surface_elevated : Theme.surface;
                             border-width: 1px;
                             border-color: Theme.border;
@@ -398,6 +398,7 @@ export component DetailView inherits Rectangle {
                                 Text {
                                     text: rel.title;
                                     font-size: 11px;
+                                    font-weight: 500;
                                     color: Theme.text_secondary;
                                     vertical-alignment: center;
                                 }

@@ -32,13 +32,13 @@ export component QuickPasteWindow inherits Window {
     Rectangle {
         border-width: 1px;
         border-color: Theme.border;
-        border-radius: 8px;
+        border-radius: Theme.radius_lg;
         clip: true;
 
         VerticalLayout {
-            // Search header
+            // Search header (Standardized 54px cmdk/Raycast search header)
             Rectangle {
-                height: 52px;
+                height: 54px;
 
                 Rectangle {
                     y: parent.height - 1px;
@@ -47,13 +47,14 @@ export component QuickPasteWindow inherits Window {
                 }
 
                 HorizontalLayout {
-                    padding-left: 14px;
-                    padding-right: 14px;
+                    padding-left: 16px;
+                    padding-right: 16px;
 
                     search_field := LineEdit {
                         text: root.search_text;
-                        placeholder-text: "Search snippets… (Enter to copy, Esc to close)";
-                        font-size: 14px;
+                        placeholder-text: "Type to search snippets… (Enter to paste, Esc to close)";
+                        font-size: 13px;
+                        height: Theme.input_h;
                         y: (parent.height - self.height) / 2;
                         edited => {
                             root.search_text = self.text;
@@ -71,7 +72,9 @@ export component QuickPasteWindow inherits Window {
             // Results list
             ScrollView {
                 VerticalLayout {
-                    spacing: 0px;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    spacing: 2px;
 
                     if root.snippets.length == 0: Rectangle {
                         height: 120px;
@@ -85,16 +88,11 @@ export component QuickPasteWindow inherits Window {
                     }
 
                     for item[index] in root.snippets: Rectangle {
-                        height: 56px;
+                        height: 52px;
+                        border-radius: Theme.radius_md;
                         background: root.active_index == index ?
                             Theme.surface_elevated :
                             (row_touch.has-hover ? Theme.surface_elevated.transparentize(50%) : Colors.transparent);
-
-                        Rectangle {
-                            y: parent.height - 1px;
-                            height: 1px;
-                            background: Theme.border_subtle;
-                        }
 
                         row_touch := TouchArea {
                             clicked => { root.choose_snippet(item.id); }
@@ -132,19 +130,22 @@ export component QuickPasteWindow inherits Window {
                             }
 
                             if item.group_name != "": Rectangle {
-                                height: 16px;
-                                border-radius: 3px;
-                                background: Theme.surface_elevated;
+                                height: 18px;
+                                border-radius: Theme.radius_sm;
+                                background: Theme.surface;
+                                border-width: 1px;
+                                border-color: Theme.border;
                                 y: (parent.height - self.height) / 2;
 
                                 HorizontalLayout {
-                                    padding-left: 5px;
-                                    padding-right: 5px;
+                                    padding-left: 6px;
+                                    padding-right: 6px;
 
                                     Text {
                                         text: item.group_name;
-                                        font-size: 9px;
-                                        font-weight: 700;
+                                        font-size: 10px;
+                                        font-weight: 600;
+                                        letter-spacing: 0.5px;
                                         color: Theme.text_secondary;
                                         vertical-alignment: center;
                                     }

@@ -6,7 +6,7 @@ export component Toast inherits Rectangle {
     in-out property <bool> is_error: false;
 
     height: 40px;
-    border-radius: 8px;
+    border-radius: Theme.radius_md;
     background: root.is_error ? Theme.danger : Theme.surface_elevated;
     border-width: 1px;
     border-color: root.is_error ? Theme.danger : Theme.border;
