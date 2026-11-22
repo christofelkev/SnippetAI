@@ -2,6 +2,7 @@
 
 mod app_state;
 mod clipboard;
+mod highlight;
 mod hotkey;
 mod instance;
 
@@ -150,6 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Ok(snippet) = state.db.add_snippet("Untitled Snippet", "", grp, None) {
                     *state.selected_id.lock().unwrap() = snippet.id.clone();
                     state.reload_snippets();
+                    mw.set_detail_is_editing(true);
                     state.update_ui(&mw);
                     trigger_toast(&mw, "New snippet created", false);
                 }
@@ -172,6 +174,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Some(lang.as_str()),
                     );
                     state.reload_snippets();
+
+                    // Re-detect language and update syntax highlighting
+                    let detected = if lang.is_empty() {
+                        snippet_core::detect::detect_language(content.as_str())
+                    } else {
+                        lang.as_str()
+                    };
+                    mw.set_detail_detected_language(SharedString::from(detected));
+
+                    let theme_id = mw.global::<Theme>().get_theme_id();
+                    let code_to_highlight = if content.as_str().contains("![") {
+                        snippet_core::content::strip_image_markdown(content.as_str())
+                    } else {
+                        content.to_string()
+                    };
+                    let highlighted = crate::highlight::highlight_code(&code_to_highlight, detected, theme_id);
+                    mw.set_detail_highlighted_lines(ModelRc::new(VecModel::from(highlighted)));
 
                     // Update left list titles/previews smoothly without touching active DetailView
                     let snippets = state.all_snippets.lock().unwrap().clone();
@@ -323,7 +342,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             None,
                         );
                         state.reload_snippets();
-                        mw.set_detail_content(SharedString::from(combined));
+                        mw.set_detail_content(SharedString::from(&combined));
+
+                        let theme_id = mw.global::<Theme>().get_theme_id();
+                        let detected = mw.get_detail_detected_language();
+                        let highlighted = crate::highlight::highlight_code(new_body.as_str(), detected.as_str(), theme_id);
+                        mw.set_detail_highlighted_lines(ModelRc::new(VecModel::from(highlighted)));
                     }
                 }
             }
@@ -407,6 +431,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(mw) = mw_weak.upgrade() {
                 mw.global::<Theme>().set_theme_id(theme_id);
                 mw.set_current_theme(theme_id);
+                state.update_ui(&mw);
                 trigger_toast(&mw, "Settings saved!", false);
             }
             if let Some(qp) = qp_weak.upgrade() {

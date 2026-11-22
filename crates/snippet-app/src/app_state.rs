@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use slint::{ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use snippet_core::db::Database;
 use snippet_core::models::Snippet;
 use snippet_core::content::{parse_content, strip_image_markdown, ContentBlock};
@@ -108,6 +108,14 @@ impl AppState {
             window.set_detail_content(SharedString::from(&active.content));
             window.set_detail_language(SharedString::from(&active.language));
 
+            // Auto-detect language if not explicitly specified
+            let detected = if active.language.is_empty() {
+                snippet_core::detect::detect_language(&active.content)
+            } else {
+                active.language.as_str()
+            };
+            window.set_detail_detected_language(SharedString::from(detected));
+
             // Parse blocks (text and inline images)
             let blocks = parse_content(&active.content);
             let app_dir = get_app_dir();
@@ -144,6 +152,16 @@ impl AppState {
             window.set_detail_images(ModelRc::new(VecModel::from(image_items)));
             window.set_detail_text_body(SharedString::from(text_body));
 
+            // Compute syntax highlighted lines
+            let theme_id = window.global::<crate::Theme>().get_theme_id();
+            let code_to_highlight = if has_images {
+                snippet_core::content::strip_image_markdown(&active.content)
+            } else {
+                active.content.clone()
+            };
+            let highlighted = crate::highlight::highlight_code(&code_to_highlight, detected, theme_id);
+            window.set_detail_highlighted_lines(ModelRc::new(VecModel::from(highlighted)));
+
             // Related snippets
             let related = find_related_snippets(active, &snippets, 3);
             let related_items: Vec<RelatedItem> = related
@@ -159,6 +177,8 @@ impl AppState {
             window.set_detail_group(SharedString::default());
             window.set_detail_content(SharedString::default());
             window.set_detail_language(SharedString::default());
+            window.set_detail_detected_language(SharedString::default());
+            window.set_detail_highlighted_lines(ModelRc::new(VecModel::default()));
             window.set_detail_has_images(false);
             window.set_detail_images(ModelRc::new(VecModel::default()));
             window.set_detail_text_body(SharedString::default());

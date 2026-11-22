@@ -12,12 +12,26 @@ export struct ImageItem {
     index: int,
 }
 
+export struct HighlightToken {
+    text: string,
+    color: color,
+}
+
+export struct HighlightLine {
+    line_num: int,
+    tokens: [HighlightToken],
+}
+
 export component DetailView inherits Rectangle {
     in property <string> snippet_id: "";
     in-out property <string> title: "";
     in-out property <string> group: "";
     in-out property <string> content: "";
     in-out property <string> language: "";
+    in property <string> detected_language: "";
+    in property <[HighlightLine]> highlighted_lines: [];
+    in-out property <bool> is_editing: false;
+
     in property <[string]> languages: ["auto", "bash", "javascript", "typescript", "python", "json", "sql", "rust", "go", "html", "css", "yaml", "markdown"];
     in property <bool> is_copied: false;
     in property <[RelatedItem]> related_snippets: [];
@@ -137,10 +151,41 @@ export component DetailView inherits Rectangle {
                     spacing: 8px;
                     alignment: center;
 
-                    // Custom Sleek Language Selector
+                    // Mode Toggle Button (Preview / Edit)
+                    mode_btn := Rectangle {
+                        height: Theme.btn_h_sm;
+                        min-width: 82px;
+                        border-radius: Theme.radius_md;
+                        background: root.is_editing ? 
+                            (Theme.theme_id == 1 ? #e60012.transparentize(80%) : Theme.accent.transparentize(82%)) : 
+                            (mode_touch.has-hover ? Theme.surface_elevated : Theme.surface);
+                        border-width: 1px;
+                        border-color: root.is_editing ? Theme.accent : Theme.border;
+
+                        mode_touch := TouchArea {
+                            clicked => { root.is_editing = !root.is_editing; }
+                        }
+
+                        HorizontalLayout {
+                            padding-left: 8px;
+                            padding-right: 8px;
+                            spacing: 5px;
+                            alignment: center;
+
+                            Text {
+                                text: root.is_editing ? "👁 Preview" : "✏️ Edit";
+                                font-size: 11px;
+                                font-weight: 600;
+                                color: root.is_editing ? Theme.accent : Theme.text_secondary;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    // Custom Sleek Language Selector with Auto-detect feedback
                     lang_btn := Rectangle {
                         height: Theme.btn_h_sm;
-                        min-width: 92px;
+                        min-width: 96px;
                         border-radius: Theme.radius_md;
                         background: lang_touch.has-hover ? Theme.surface_elevated : Theme.surface;
                         border-width: 1px;
@@ -153,10 +198,13 @@ export component DetailView inherits Rectangle {
                         HorizontalLayout {
                             padding-left: 10px;
                             padding-right: 10px;
+                            spacing: 6px;
                             alignment: space-between;
 
                             Text {
-                                text: root.language == "" ? "AUTO" : root.language.to-uppercase();
+                                text: root.language == "" ? 
+                                    (root.detected_language == "" ? "AUTO" : "AUTO (" + root.detected_language.to-uppercase() + ")") : 
+                                    root.language.to-uppercase();
                                 font-size: 11px;
                                 font-weight: 600;
                                 color: Theme.text_secondary;
@@ -174,8 +222,8 @@ export component DetailView inherits Rectangle {
                         lang_popup := PopupWindow {
                             x: 0;
                             y: parent.height + 4px;
-                            width: 130px;
-                            height: 220px;
+                            width: 140px;
+                            height: 240px;
 
                             Rectangle {
                                 background: Theme.surface;
@@ -274,7 +322,63 @@ export component DetailView inherits Rectangle {
                 spacing: 16px;
 
                 // Case 1: Pure Code / Text Snippet
-                if !root.has_images: TextEdit {
+                // 1A. Syntax Highlighted View (Preview Mode)
+                if !root.has_images && !root.is_editing: Rectangle {
+                    background: Theme.surface;
+                    border-radius: Theme.radius_md;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    min-height: 440px;
+
+                    TouchArea {
+                        double-clicked => {
+                            root.is_editing = true;
+                        }
+                    }
+
+                    VerticalLayout {
+                        padding-top: 14px;
+                        padding-bottom: 14px;
+                        padding-left: 10px;
+                        padding-right: 14px;
+                        spacing: 0px;
+
+                        for line in root.highlighted_lines: HorizontalLayout {
+                            spacing: 0px;
+                            alignment: start;
+
+                            // Line number
+                            Text {
+                                text: line.line_num;
+                                font-size: 13px;
+                                font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                                color: Theme.text_muted.transparentize(50%);
+                                width: 36px;
+                                horizontal-alignment: right;
+                            }
+
+                            // Margin space between line number and code
+                            Rectangle {
+                                width: 14px;
+                            }
+
+                            // Syntax highlighted tokens
+                            HorizontalLayout {
+                                spacing: 0px;
+                                alignment: start;
+                                for token in line.tokens: Text {
+                                    text: token.text;
+                                    color: token.color;
+                                    font-size: 13px;
+                                    font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 1B. Interactive Text Editor (Edit Mode)
+                if !root.has_images && root.is_editing: TextEdit {
                     text: root.content;
                     font-size: 13px;
                     font-family: "Cascadia Code, Fira Code, Consolas, monospace";
@@ -340,19 +444,78 @@ export component DetailView inherits Rectangle {
                         }
                     }
 
-                    // Accompanying notes/code editor below images
+                    // Accompanying notes/code section below images
                     VerticalLayout {
                         spacing: 6px;
 
-                        Text {
-                            text: "NOTES / CODE";
-                            font-size: 10px;
-                            font-weight: 700;
-                            letter-spacing: 1.2px;
-                            color: Theme.text_muted;
+                        HorizontalLayout {
+                            alignment: space-between;
+
+                            Text {
+                                text: "NOTES / CODE";
+                                font-size: 10px;
+                                font-weight: 700;
+                                letter-spacing: 1.2px;
+                                color: Theme.text_muted;
+                                vertical-alignment: center;
+                            }
+
+                            if !root.is_editing: Text {
+                                text: "(Double-click to edit)";
+                                font-size: 10px;
+                                color: Theme.text_muted.transparentize(30%);
+                                vertical-alignment: center;
+                            }
                         }
 
-                        TextEdit {
+                        if !root.is_editing: Rectangle {
+                            background: Theme.surface;
+                            border-radius: Theme.radius_md;
+                            border-width: 1px;
+                            border-color: Theme.border;
+                            min-height: 120px;
+
+                            TouchArea {
+                                double-clicked => { root.is_editing = true; }
+                            }
+
+                            VerticalLayout {
+                                padding-top: 10px;
+                                padding-bottom: 10px;
+                                padding-left: 10px;
+                                padding-right: 12px;
+                                spacing: 0px;
+
+                                for line in root.highlighted_lines: HorizontalLayout {
+                                    spacing: 0px;
+                                    alignment: start;
+
+                                    Text {
+                                        text: line.line_num;
+                                        font-size: 12px;
+                                        font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                                        color: Theme.text_muted.transparentize(50%);
+                                        width: 28px;
+                                        horizontal-alignment: right;
+                                    }
+
+                                    Rectangle { width: 12px; }
+
+                                    HorizontalLayout {
+                                        spacing: 0px;
+                                        alignment: start;
+                                        for token in line.tokens: Text {
+                                            text: token.text;
+                                            color: token.color;
+                                            font-size: 12px;
+                                            font-family: "Cascadia Code, Fira Code, Consolas, monospace";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.is_editing: TextEdit {
                             text: root.text_body;
                             font-size: 13px;
                             font-family: "Cascadia Code, Fira Code, Consolas, monospace";

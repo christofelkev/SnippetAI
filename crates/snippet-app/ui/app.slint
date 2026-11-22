@@ -5,8 +5,8 @@ import { QuickPasteWindow } from "quickpaste.slint";
 export { QuickPasteWindow }
 import { Sidebar, GroupItem } from "components/sidebar.slint";
 import { SnippetList, SnippetItem } from "components/snippet_list.slint";
-import { DetailView, RelatedItem, ImageItem } from "components/detail_view.slint";
-export { ImageItem }
+import { DetailView, RelatedItem, ImageItem, HighlightToken, HighlightLine } from "components/detail_view.slint";
+export { ImageItem, HighlightToken, HighlightLine }
 import { ResizeHandle } from "components/resize_handle.slint";
 import { SettingsModal } from "components/settings_modal.slint";
 import { AIModal, AIGroupPreview } from "components/ai_modal.slint";
@@ -48,6 +48,9 @@ export component MainWindow inherits Window {
     in-out property <string> detail_group: "";
     in-out property <string> detail_content: "";
     in-out property <string> detail_language: "";
+    in property <string> detail_detected_language: "";
+    in property <[HighlightLine]> detail_highlighted_lines: [];
+    in-out property <bool> detail_is_editing: false;
     in property <bool> is_copied: false;
     in property <[RelatedItem]> related_snippets: [];
 
@@ -166,6 +169,9 @@ export component MainWindow inherits Window {
             group <=> root.detail_group;
             content <=> root.detail_content;
             language <=> root.detail_language;
+            detected_language: root.detail_detected_language;
+            highlighted_lines: root.detail_highlighted_lines;
+            is_editing <=> root.detail_is_editing;
             is_copied: root.is_copied;
             related_snippets: root.related_snippets;
             has_images: root.detail_has_images;

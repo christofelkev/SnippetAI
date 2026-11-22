@@ -4,3 +4,4 @@ pub mod db;
 pub mod storage;
 pub mod related;
 pub mod ai;
+pub mod detect;
